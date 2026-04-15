@@ -1,0 +1,661 @@
+/**
+ * ChatScreen — the main Deft agent interface.
+ *
+ * Users type or speak commands here. The screen shows:
+ *   - A scrollable list of chat messages (user commands, agent actions, screen updates)
+ *   - A text input bar with a send button
+ *   - A mic button for voice input via expo-av
+ *
+ * Agent actions and screen-state changes arrive as messages with kind='action'
+ * or kind='screen', displayed with distinct visual treatments to distinguish
+ * them from plain conversation.
+ */
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Animated,
+} from 'react-native';
+import {
+  type ChatMessage,
+  addMessage,
+  clearMessages,
+  subscribe,
+} from '../../src/store/chatStore';
+import { processCommand } from '../../src/agent/agentBridge';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type RecordingState = 'idle' | 'recording' | 'processing';
+
+// ---------------------------------------------------------------------------
+// Root component
+// ---------------------------------------------------------------------------
+
+export function ChatScreen() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Subscribe to the shared message store
+  useEffect(() => {
+    const unsub = subscribe(setMessages);
+    return unsub;
+  }, []);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  }, [messages]);
+
+  const sendText = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setInputText('');
+    addMessage('user', 'text', trimmed);
+    await processCommand(trimmed);
+  }, []);
+
+  const handleSend = useCallback(() => {
+    sendText(inputText);
+  }, [inputText, sendText]);
+
+  const handleVoice = useCallback(async () => {
+    if (recordingState === 'recording') {
+      setRecordingState('processing');
+      const transcript = await stopRecording();
+      setRecordingState('idle');
+      if (transcript) {
+        await sendText(transcript);
+      }
+    } else if (recordingState === 'idle') {
+      const started = await startRecording();
+      if (started) {
+        setRecordingState('recording');
+      }
+    }
+  }, [recordingState, sendText]);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <Header onClear={clearMessages} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {messages.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(m) => m.id}
+            renderItem={({ item }) => <MessageBubble message={item} />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+        <InputBar
+          value={inputText}
+          onChangeText={setInputText}
+          onSend={handleSend}
+          onVoice={handleVoice}
+          recordingState={recordingState}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+function Header({ onClear }: { onClear: () => void }) {
+  return (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Deft</Text>
+      <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Text style={styles.headerClear}>Clear</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+function EmptyState() {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIconWrap}>
+        <Text style={styles.emptyIconText}>D</Text>
+      </View>
+      <Text style={styles.emptyHeadline}>What should I do?</Text>
+      <Text style={styles.emptySubtext}>
+        Type a command or tap the mic to speak.
+      </Text>
+      <View style={styles.suggestions}>
+        <SuggestionChip text="Open Settings" />
+        <SuggestionChip text="Send a message to Mom" />
+        <SuggestionChip text="Turn on Wi-Fi" />
+      </View>
+    </View>
+  );
+}
+
+function SuggestionChip({ text }: { text: string }) {
+  return (
+    <View style={styles.chip}>
+      <Text style={styles.chipText}>{text}</Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Message bubble
+// ---------------------------------------------------------------------------
+
+function MessageBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'user';
+  const isAction = message.kind === 'action';
+  const isScreen = message.kind === 'screen';
+
+  if (isScreen) {
+    return (
+      <View style={styles.screenRow}>
+        <View style={styles.screenLinePre} />
+        <Text style={styles.screenLabel}>{message.text}</Text>
+        <View style={styles.screenLinePost} />
+      </View>
+    );
+  }
+
+  if (isAction) {
+    return (
+      <View style={styles.actionRow}>
+        <View style={styles.actionDot} />
+        <Text style={styles.actionText} numberOfLines={2}>{message.text}</Text>
+        {message.pending && <PendingDots />}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAgent]}>
+      <View
+        style={[
+          styles.bubble,
+          isUser ? styles.bubbleUser : styles.bubbleAgent,
+        ]}
+      >
+        <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextAgent]}>
+          {message.text}
+        </Text>
+        {message.pending && <PendingDots />}
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pending animation (three dots)
+// ---------------------------------------------------------------------------
+
+function PendingDots() {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const pulse = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ]),
+      );
+    const a1 = pulse(dot1, 0);
+    const a2 = pulse(dot2, 150);
+    const a3 = pulse(dot3, 300);
+    a1.start();
+    a2.start();
+    a3.start();
+    return () => {
+      a1.stop();
+      a2.stop();
+      a3.stop();
+    };
+  }, [dot1, dot2, dot3]);
+
+  return (
+    <View style={styles.dots}>
+      {[dot1, dot2, dot3].map((d, i) => (
+        <Animated.View key={i} style={[styles.dot, { opacity: d }]} />
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Input bar
+// ---------------------------------------------------------------------------
+
+interface InputBarProps {
+  value: string;
+  onChangeText: (t: string) => void;
+  onSend: () => void;
+  onVoice: () => void;
+  recordingState: RecordingState;
+}
+
+function InputBar({ value, onChangeText, onSend, onVoice, recordingState }: InputBarProps) {
+  const isRecording = recordingState === 'recording';
+  const isProcessing = recordingState === 'processing';
+  const canSend = value.trim().length > 0 && !isRecording && !isProcessing;
+
+  return (
+    <View style={styles.inputBar}>
+      {/* Mic button */}
+      <TouchableOpacity
+        style={[
+          styles.micButton,
+          isRecording && styles.micButtonActive,
+          isProcessing && styles.micButtonProcessing,
+        ]}
+        onPress={onVoice}
+        disabled={isProcessing}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.micIcon}>{isRecording ? '■' : isProcessing ? '…' : '🎙'}</Text>
+      </TouchableOpacity>
+
+      {/* Text input */}
+      <TextInput
+        style={styles.textInput}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={isRecording ? 'Listening...' : 'Tell Deft what to do'}
+        placeholderTextColor="#555"
+        onSubmitEditing={onSend}
+        returnKeyType="send"
+        multiline
+        editable={!isRecording && !isProcessing}
+        blurOnSubmit={false}
+      />
+
+      {/* Send button */}
+      <TouchableOpacity
+        style={[styles.sendButton, canSend && styles.sendButtonActive]}
+        onPress={onSend}
+        disabled={!canSend}
+        activeOpacity={0.75}
+      >
+        <Text style={[styles.sendIcon, canSend && styles.sendIconActive]}>↑</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Voice recording helpers (expo-av)
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal shape of an expo-av Recording object that we depend on.
+ * Lets us type-check without the package installed -- expo-av satisfies
+ * this interface at runtime once installed.
+ */
+interface RecordingLike {
+  stopAndUnloadAsync(): Promise<void>;
+  getURI(): string | null;
+}
+
+/**
+ * Minimal shape of the expo-av Audio namespace we use.
+ * Keeps the code type-safe without requiring expo-av to be installed.
+ */
+interface AudioLike {
+  requestPermissionsAsync(): Promise<{ status: string }>;
+  setAudioModeAsync(options: Record<string, unknown>): Promise<void>;
+  Recording: {
+    createAsync(preset: unknown): Promise<{ recording: RecordingLike }>;
+    RecordingOptionsPresets?: { HIGH_QUALITY: unknown };
+  };
+  RecordingOptionsPresets: { HIGH_QUALITY: unknown };
+}
+
+/**
+ * Start recording via expo-av.
+ * Falls back gracefully if expo-av is not linked.
+ * Returns true if recording started successfully.
+ */
+async function startRecording(): Promise<boolean> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Audio } = require('expo-av') as { Audio: AudioLike };
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') return false;
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
+    const { recording } = await Audio.Recording.createAsync(
+      Audio.RecordingOptionsPresets.HIGH_QUALITY,
+    );
+    // Store on module-level so stopRecording can access it
+    _activeRecording = recording;
+    return true;
+  } catch {
+    // expo-av not linked -- return false so UI stays usable
+    return false;
+  }
+}
+
+/**
+ * Stop the active recording and return the URI of the audio file.
+ * Transcription is handled by the agentBridge via the local LLM's audio
+ * capability (or a separate Whisper module in future).
+ *
+ * For now, returns null and lets the agent bridge handle an empty command
+ * gracefully. This keeps the interface functional before the audio pipeline
+ * is wired up.
+ */
+async function stopRecording(): Promise<string | null> {
+  if (!_activeRecording) return null;
+  try {
+    await _activeRecording.stopAndUnloadAsync();
+    const uri = _activeRecording.getURI();
+    _activeRecording = null;
+    // TODO: pass `uri` to a transcription module (Whisper / LLM audio input)
+    // For now we return null -- voice UI is functional, transcript TBD
+    void uri;
+    return null;
+  } catch {
+    _activeRecording = null;
+    return null;
+  }
+}
+
+// Module-level reference to the active Recording object
+let _activeRecording: RecordingLike | null = null;
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  flex: {
+    flex: 1,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.3,
+  },
+  headerClear: {
+    fontSize: 14,
+    color: '#555',
+  },
+
+  // Message list
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+
+  // Empty state
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyIconText: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  emptyHeadline: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.3,
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  suggestions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  chip: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#ccc',
+  },
+
+  // Bubbles
+  bubbleRow: {
+    flexDirection: 'row',
+    marginVertical: 2,
+  },
+  bubbleRowUser: {
+    justifyContent: 'flex-end',
+  },
+  bubbleRowAgent: {
+    justifyContent: 'flex-start',
+  },
+  bubble: {
+    maxWidth: '80%',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  bubbleUser: {
+    backgroundColor: '#fff',
+    borderBottomRightRadius: 4,
+  },
+  bubbleAgent: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderBottomLeftRadius: 4,
+  },
+  bubbleText: {
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  bubbleTextUser: {
+    color: '#0a0a0a',
+  },
+  bubbleTextAgent: {
+    color: '#e5e5e5',
+  },
+
+  // Action rows (agent step indicators)
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  actionDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+    flexShrink: 0,
+  },
+  actionText: {
+    fontSize: 13,
+    color: '#888',
+    flex: 1,
+  },
+
+  // Screen label (divider between screen states)
+  screenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 6,
+    paddingHorizontal: 4,
+  },
+  screenLinePre: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#1e1e1e',
+  },
+  screenLabel: {
+    fontSize: 11,
+    color: '#444',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  screenLinePost: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#1e1e1e',
+  },
+
+  // Pending dots
+  dots: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#4ADE80',
+  },
+
+  // Input bar
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#1a1a1a',
+    gap: 8,
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonActive: {
+    backgroundColor: '#1a2e1a',
+    borderColor: '#4ADE80',
+  },
+  micButtonProcessing: {
+    backgroundColor: '#1a1a2e',
+    borderColor: '#818cf8',
+  },
+  micIcon: {
+    fontSize: 16,
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    backgroundColor: '#141414',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#fff',
+    lineHeight: 20,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2a2a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonActive: {
+    backgroundColor: '#fff',
+  },
+  sendIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#555',
+  },
+  sendIconActive: {
+    color: '#0a0a0a',
+  },
+});

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { OnboardingNavigator } from './app/onboarding/OnboardingNavigator';
+import { ChatScreen } from './app/chat/ChatScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
 
 type AppState = 'loading' | 'onboarding' | 'main';
@@ -45,13 +46,12 @@ export default function App() {
     );
   }
 
-  // Main app (placeholder until tabs are built)
+  // Main app — full chat interface
   return (
-    <View style={styles.mainContainer}>
-      <Text style={styles.mainText}>Deft</Text>
-      <Text style={styles.mainSubtext}>Tell me what to do</Text>
+    <>
+      <ChatScreen />
       <StatusBar style="light" />
-    </View>
+    </>
   );
 }
 
@@ -62,22 +62,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-  },
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: -1,
-  },
-  mainSubtext: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
   },
 });
