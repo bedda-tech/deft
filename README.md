@@ -143,7 +143,32 @@ deft/
 
 ## Contributing
 
-Contributions welcome. Check out the individual library repos for lower-level work, or this repo for app-level features.
+Contributions are welcome. For lower-level changes (gesture APIs, accessibility tree, LLM providers), contribute to the individual library repos. This repo is for app-level features: UI, onboarding, settings, and model management.
+
+**Setup**
+
+```bash
+git clone https://github.com/bedda-tech/deft.git
+cd deft
+npm install
+npm start
+```
+
+You need an Android device or emulator (API 30+) with developer mode enabled. On first run, the app will prompt you to enable the Deft AccessibilityService and download the Gemma 4 model (~2.5 GB).
+
+**Guidelines**
+
+- TypeScript strict throughout -- no `any`, no type assertions without a comment
+- Zustand for all agent state; keep side effects in `services/agent.ts`
+- Expo Router for navigation -- add new screens under `app/`
+- Test onboarding changes on a real device; emulators skip some accessibility flows
+- Open an issue before starting large changes
+
+**Related Repos**
+
+- [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller) -- screen reading, gestures, global actions
+- [react-native-device-agent](https://github.com/bedda-tech/react-native-device-agent) -- agent loop and LLM providers
+- [react-native-executorch](https://github.com/bedda-tech/react-native-executorch) -- on-device Gemma 4 inference
 
 ## License
 
