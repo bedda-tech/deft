@@ -31,6 +31,7 @@ import {
   subscribe,
 } from '../../src/store/chatStore';
 import { processCommand } from '../../src/agent/agentBridge';
+import { ScreenPreview } from '../../src/components/ScreenPreview';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,6 +95,7 @@ export function ChatScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <Header onClear={clearMessages} />
+      <ScreenPreview refreshIntervalMs={3000} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
