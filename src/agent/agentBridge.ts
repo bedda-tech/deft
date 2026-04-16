@@ -16,6 +16,8 @@ import {
   addMessage,
   updateMessage,
 } from '../store/chatStore';
+import { getSettings } from '../store/settingsStore';
+import { addSession, type SessionOutcome } from '../store/historyStore';
 
 // ---------------------------------------------------------------------------
 // Cancellation
@@ -44,14 +46,22 @@ export async function processCommand(command: string): Promise<void> {
   // Add a pending "thinking" agent message immediately
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
 
+  let outcome: SessionOutcome = 'complete';
+  let actions: string[] = [];
+  let summary = '';
+
   try {
-    await runAgentLoop(command, thinkingMsg.id);
+    const result = await runAgentLoop(command, thinkingMsg.id);
+    actions = result.actions;
+    outcome = result.outcome;
+    summary = result.summary;
   } catch (err) {
-    updateMessage(thinkingMsg.id, {
-      text: `Error: ${err instanceof Error ? err.message : String(err)}`,
-      pending: false,
-    });
+    outcome = 'error';
+    summary = `Error: ${err instanceof Error ? err.message : String(err)}`;
+    updateMessage(thinkingMsg.id, { text: summary, pending: false });
   }
+
+  addSession(command, actions, outcome, summary);
 }
 
 // ---------------------------------------------------------------------------
@@ -63,39 +73,56 @@ interface AgentStep {
   text: string;
 }
 
-async function runAgentLoop(command: string, thinkingMsgId: string): Promise<void> {
-  let llmAvailable = false;
+interface LoopResult {
+  actions: string[];
+  outcome: SessionOutcome;
+  summary: string;
+}
+
+async function runAgentLoop(command: string, thinkingMsgId: string): Promise<LoopResult> {
+  const settings = getSettings();
   let steps: AgentStep[] = [];
 
   try {
     steps = await invokeLocalLLM(command);
-    llmAvailable = true;
   } catch {
     steps = await stubAgentSteps(command);
   }
 
-  void llmAvailable; // used implicitly by the branch above
-
-  // Emit each step as a chat message
+  // Cap to maxSteps (each action step counts as one)
+  let stepsTaken = 0;
+  const actions: string[] = [];
   let finalResponse: string | null = null;
+  let outcome: SessionOutcome = 'complete';
 
   for (const step of steps) {
     if (_stopped) {
       finalResponse = 'Stopped.';
+      outcome = 'stopped';
+      break;
+    }
+    if (stepsTaken >= settings.maxSteps) {
+      finalResponse = `Reached the ${settings.maxSteps}-step limit.`;
       break;
     }
     if (step.kind === 'response') {
       finalResponse = step.text;
     } else {
       addMessage('agent', step.kind, step.text);
+      if (step.kind === 'action') {
+        actions.push(step.text);
+        stepsTaken++;
+        // Settle delay between actions (minimal in stub, real use feels it)
+        if (settings.settleMs > 0) {
+          await delay(Math.min(settings.settleMs, 200)); // cap stub delay to 200ms
+        }
+      }
     }
   }
 
-  // Resolve the thinking placeholder
-  updateMessage(thinkingMsgId, {
-    text: finalResponse ?? 'Done.',
-    pending: false,
-  });
+  const summary = finalResponse ?? 'Done.';
+  updateMessage(thinkingMsgId, { text: summary, pending: false });
+  return { actions, outcome, summary };
 }
 
 // ---------------------------------------------------------------------------
