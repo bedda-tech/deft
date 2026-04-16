@@ -18,6 +18,20 @@ import {
 } from '../store/chatStore';
 
 // ---------------------------------------------------------------------------
+// Cancellation
+// ---------------------------------------------------------------------------
+
+let _stopped = false;
+
+/**
+ * Signal the agent to stop after its current step.
+ * The running loop checks this flag between steps and exits early.
+ */
+export function stopAgent(): void {
+  _stopped = true;
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -26,6 +40,7 @@ import {
  * This is an async fire-and-forget from the UI perspective.
  */
 export async function processCommand(command: string): Promise<void> {
+  _stopped = false; // reset on each new command
   // Add a pending "thinking" agent message immediately
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
 
@@ -65,6 +80,10 @@ async function runAgentLoop(command: string, thinkingMsgId: string): Promise<voi
   let finalResponse: string | null = null;
 
   for (const step of steps) {
+    if (_stopped) {
+      finalResponse = 'Stopped.';
+      break;
+    }
     if (step.kind === 'response') {
       finalResponse = step.text;
     } else {

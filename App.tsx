@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { OnboardingNavigator } from './app/onboarding/OnboardingNavigator';
 import { ChatScreen } from './app/chat/ChatScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
+import { AgentOverlay } from './src/components/AgentOverlay';
 
 type AppState = 'loading' | 'onboarding' | 'main';
 
@@ -50,6 +51,7 @@ export default function App() {
   return (
     <>
       <ChatScreen />
+      <AgentOverlay />
       <StatusBar style="light" />
     </>
   );
