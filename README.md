@@ -2,7 +2,11 @@
   <img src="./assets/deft-logo.png" alt="Deft" width="180" />
 </p>
 
-# Deft
+<div align="center">
+  <h1 align="center" style="display:inline-block">Deft
+  </h1>
+</div>
+
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![build](https://img.shields.io/github/actions/workflow/status/bedda-tech/deft/ci.yml?branch=main)](https://github.com/bedda-tech/deft/actions)
