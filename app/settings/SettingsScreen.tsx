@@ -143,8 +143,14 @@ export function SettingsScreen() {
             onChange={(v) => update({ settleMs: v })}
           />
           <View style={styles.divider} />
+          <ToggleRow
+            label="Vision mode (screenshot per step)"
+            value={settings.useVision}
+            onChange={(v) => update({ useVision: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action before reading the screen again."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding — requires the model to support image input."
           />
         </View>
 

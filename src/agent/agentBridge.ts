@@ -99,6 +99,7 @@ async function runRealAgentLoop(
       provider: unknown;
       maxSteps: number;
       settleMs: number;
+      useVision?: boolean;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -116,6 +117,7 @@ async function runRealAgentLoop(
     provider,
     maxSteps: settings.maxSteps,
     settleMs: settings.settleMs,
+    useVision: settings.useVision,
   });
 
   const actions: string[] = [];

@@ -23,6 +23,8 @@ export interface Settings {
   maxSteps: number;
   /** Milliseconds to wait after each action before observing the result. */
   settleMs: number;
+  /** Enable multimodal vision: take a screenshot at each step and pass it to the LLM. */
+  useVision: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cloudModel: 'claude-sonnet-4-6',
   maxSteps: 20,
   settleMs: 500,
+  useVision: false,
 };
 
 const SETTINGS_KEY = '@deft/settings';
