@@ -11,6 +11,14 @@ export interface Settings {
   model: 'E2B' | 'E4B';
   /** Fall back to a cloud LLM when the local model is unavailable. */
   cloudFallback: boolean;
+  /** API key for the cloud provider (OpenAI or Anthropic). */
+  cloudApiKey: string;
+  /**
+   * Cloud model identifier.
+   * OpenAI example: 'gpt-4o'
+   * Anthropic example: 'claude-sonnet-4-6'
+   */
+  cloudModel: string;
   /** Maximum number of agent loop steps before giving up. */
   maxSteps: number;
   /** Milliseconds to wait after each action before observing the result. */
@@ -20,6 +28,8 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   model: 'E4B',
   cloudFallback: false,
+  cloudApiKey: '',
+  cloudModel: 'claude-sonnet-4-6',
   maxSteps: 20,
   settleMs: 500,
 };

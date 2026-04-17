@@ -3,13 +3,12 @@
  *
  * Receives a text command from the chat UI and drives the agent loop:
  *   1. Add a "thinking" pending message
- *   2. Invoke the local LLM (react-native-executorch) with the command
- *   3. As the agent produces steps, emit action / screen messages
+ *   2. Build a provider (CloudProvider when fallback is enabled, stub otherwise)
+ *   3. Run AgentLoop from react-native-device-agent, streaming events to the chat store
  *   4. Resolve the pending message with the final summary
  *
- * When the LLM native module is not linked (simulator, web, tests), the bridge
- * runs a stub that echoes back a canned response so the UI stays fully
- * interactive.
+ * Falls back to a canned stub response when react-native-device-agent or
+ * react-native-accessibility-controller are not linked (simulator, tests).
  */
 
 import {
@@ -27,7 +26,6 @@ let _stopped = false;
 
 /**
  * Signal the agent to stop after its current step.
- * The running loop checks this flag between steps and exits early.
  */
 export function stopAgent(): void {
   _stopped = true;
@@ -37,13 +35,8 @@ export function stopAgent(): void {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Process a user command through the agent loop.
- * This is an async fire-and-forget from the UI perspective.
- */
 export async function processCommand(command: string): Promise<void> {
-  _stopped = false; // reset on each new command
-  // Add a pending "thinking" agent message immediately
+  _stopped = false;
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
 
   let outcome: SessionOutcome = 'complete';
@@ -68,11 +61,6 @@ export async function processCommand(command: string): Promise<void> {
 // Agent loop
 // ---------------------------------------------------------------------------
 
-interface AgentStep {
-  kind: 'action' | 'screen' | 'response';
-  text: string;
-}
-
 interface LoopResult {
   actions: string[];
   outcome: SessionOutcome;
@@ -81,15 +69,145 @@ interface LoopResult {
 
 async function runAgentLoop(command: string, thinkingMsgId: string): Promise<LoopResult> {
   const settings = getSettings();
-  let steps: AgentStep[] = [];
 
+  // Try the real AgentLoop from react-native-device-agent first.
+  // Falls back to the stub if the library or native module isn't available.
   try {
-    steps = await invokeLocalLLM(command);
+    return await runRealAgentLoop(command, thinkingMsgId, settings);
   } catch {
-    steps = await stubAgentSteps(command);
+    return runStubAgentLoop(command, thinkingMsgId, settings.maxSteps);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Real agent loop (react-native-device-agent)
+// ---------------------------------------------------------------------------
+
+async function runRealAgentLoop(
+  command: string,
+  thinkingMsgId: string,
+  settings: ReturnType<typeof getSettings>,
+): Promise<LoopResult> {
+  // Lazy-require so the app compiles without the package linked.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const deviceAgent = require('react-native-device-agent') as {
+    AgentLoop: new (options: {
+      provider: unknown;
+      maxSteps: number;
+      settleMs: number;
+    }) => {
+      run: (task: string) => AsyncGenerator<AgentEvent>;
+      abort: () => void;
+    };
+    CloudProvider: new (options: {
+      apiKey: string;
+      model: string;
+      baseUrl?: string;
+      apiFormat?: 'openai' | 'anthropic';
+    }) => unknown;
+  };
+
+  const provider = buildProvider(deviceAgent.CloudProvider, settings);
+  const loop = new deviceAgent.AgentLoop({
+    provider,
+    maxSteps: settings.maxSteps,
+    settleMs: settings.settleMs,
+  });
+
+  const actions: string[] = [];
+  let finalSummary: string | null = null;
+  let outcome: SessionOutcome = 'complete';
+
+  for await (const event of loop.run(command)) {
+    if (_stopped) {
+      loop.abort();
+      finalSummary = 'Stopped.';
+      outcome = 'stopped';
+      break;
+    }
+
+    if (event.type === 'action') {
+      const text = formatAction(event.tool, event.args);
+      addMessage('agent', 'action', text);
+      actions.push(text);
+    } else if (event.type === 'observation') {
+      addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
+    } else if (event.type === 'thinking' && event.content) {
+      // Don't emit thinking as a separate bubble; let the pending message show it.
+    } else if (event.type === 'complete') {
+      finalSummary = event.result;
+      outcome = 'complete';
+    } else if (event.type === 'error') {
+      finalSummary = `Error: ${event.error.message}`;
+      outcome = 'error';
+      break;
+    } else if (event.type === 'max_steps_reached') {
+      finalSummary = `Reached the ${settings.maxSteps}-step limit.`;
+      outcome = 'complete';
+    }
   }
 
-  // Cap to maxSteps (each action step counts as one)
+  const summary = finalSummary ?? 'Done.';
+  updateMessage(thinkingMsgId, { text: summary, pending: false });
+  return { actions, outcome, summary };
+}
+
+// ---------------------------------------------------------------------------
+// Provider construction
+// ---------------------------------------------------------------------------
+
+function buildProvider(
+  CloudProvider: new (options: {
+    apiKey: string;
+    model: string;
+    baseUrl?: string;
+    apiFormat?: 'openai' | 'anthropic';
+  }) => unknown,
+  settings: ReturnType<typeof getSettings>,
+): unknown {
+  if (settings.cloudFallback && settings.cloudApiKey) {
+    const isAnthropic = settings.cloudModel.startsWith('claude');
+    return new CloudProvider({
+      apiKey: settings.cloudApiKey,
+      model: settings.cloudModel,
+      baseUrl: isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1',
+      apiFormat: isAnthropic ? 'anthropic' : 'openai',
+    });
+  }
+  // No valid provider configured -- throw so we fall back to stub.
+  throw new Error('No provider configured. Enable cloud fallback and enter an API key in Settings.');
+}
+
+// ---------------------------------------------------------------------------
+// Event type shapes (minimal, matches device-agent AgentEvent)
+// ---------------------------------------------------------------------------
+
+type AgentEvent =
+  | { type: 'thinking'; content: string }
+  | { type: 'action'; tool: string; args: Record<string, unknown> }
+  | { type: 'observation'; screenState: string; step: number }
+  | { type: 'complete'; result: string }
+  | { type: 'error'; error: Error }
+  | { type: 'max_steps_reached' };
+
+function formatAction(tool: string, args: Record<string, unknown>): string {
+  const argStr = Object.entries(args)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(', ');
+  return argStr ? `${tool}(${argStr})` : tool;
+}
+
+// ---------------------------------------------------------------------------
+// Stub (dev / simulator fallback)
+// ---------------------------------------------------------------------------
+
+async function runStubAgentLoop(
+  command: string,
+  thinkingMsgId: string,
+  maxSteps: number,
+): Promise<LoopResult> {
+  const steps = await stubAgentSteps(command);
+
   let stepsTaken = 0;
   const actions: string[] = [];
   let finalResponse: string | null = null;
@@ -101,8 +219,8 @@ async function runAgentLoop(command: string, thinkingMsgId: string): Promise<Loo
       outcome = 'stopped';
       break;
     }
-    if (stepsTaken >= settings.maxSteps) {
-      finalResponse = `Reached the ${settings.maxSteps}-step limit.`;
+    if (stepsTaken >= maxSteps) {
+      finalResponse = `Reached the ${maxSteps}-step limit.`;
       break;
     }
     if (step.kind === 'response') {
@@ -112,10 +230,7 @@ async function runAgentLoop(command: string, thinkingMsgId: string): Promise<Loo
       if (step.kind === 'action') {
         actions.push(step.text);
         stepsTaken++;
-        // Settle delay between actions (minimal in stub, real use feels it)
-        if (settings.settleMs > 0) {
-          await delay(Math.min(settings.settleMs, 200)); // cap stub delay to 200ms
-        }
+        await delay(200);
       }
     }
   }
@@ -125,81 +240,13 @@ async function runAgentLoop(command: string, thinkingMsgId: string): Promise<Loo
   return { actions, outcome, summary };
 }
 
-// ---------------------------------------------------------------------------
-// Local LLM integration (react-native-executorch)
-// ---------------------------------------------------------------------------
-
-async function invokeLocalLLM(command: string): Promise<AgentStep[]> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const executorch = require('react-native-executorch') as {
-    LLMModule?: {
-      generate: (prompt: string) => Promise<string>;
-    };
-  };
-
-  if (!executorch.LLMModule) {
-    throw new Error('LLMModule not available');
-  }
-
-  const systemPrompt = buildSystemPrompt();
-  const fullPrompt = `${systemPrompt}\n\nUser: ${command}\nAgent:`;
-  const rawResponse = await executorch.LLMModule.generate(fullPrompt);
-
-  return parseAgentResponse(rawResponse);
+interface StubStep {
+  kind: 'action' | 'screen' | 'response';
+  text: string;
 }
 
-/**
- * Parse a structured LLM response into discrete steps.
- *
- * Expected format (agent is instructed to emit this):
- *   ACTION: Opened Chrome
- *   SCREEN: Chrome – New Tab
- *   ACTION: Tapped address bar
- *   RESPONSE: Searching for the weather in Chrome now.
- */
-function parseAgentResponse(raw: string): AgentStep[] {
-  const steps: AgentStep[] = [];
-  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
-
-  for (const line of lines) {
-    if (line.startsWith('ACTION:')) {
-      steps.push({ kind: 'action', text: line.slice('ACTION:'.length).trim() });
-    } else if (line.startsWith('SCREEN:')) {
-      steps.push({ kind: 'screen', text: `Screen: ${line.slice('SCREEN:'.length).trim()}` });
-    } else if (line.startsWith('RESPONSE:')) {
-      steps.push({ kind: 'response', text: line.slice('RESPONSE:'.length).trim() });
-    }
-  }
-
-  // If nothing parsed, treat the whole response as a plain response
-  if (steps.length === 0) {
-    steps.push({ kind: 'response', text: raw.trim() });
-  }
-
-  return steps;
-}
-
-function buildSystemPrompt(): string {
-  return `You are Deft, an on-device AI agent that controls an Android phone via the Accessibility Service.
-When given a command, output a series of steps using this exact format:
-ACTION: <what you did>
-SCREEN: <current app and screen name>
-RESPONSE: <a brief natural-language summary for the user>
-Only output these prefixed lines, nothing else.`;
-}
-
-// ---------------------------------------------------------------------------
-// Stub (dev / simulator fallback)
-// ---------------------------------------------------------------------------
-
-/**
- * Produces canned steps when the LLM is not available.
- * Gives a realistic sense of what the real agent loop will look like.
- */
-async function stubAgentSteps(command: string): Promise<AgentStep[]> {
-  // Simulate a short thinking delay
+async function stubAgentSteps(command: string): Promise<StubStep[]> {
   await delay(600);
-
   const lower = command.toLowerCase();
 
   if (lower.includes('settings') || lower.includes('wi-fi') || lower.includes('wifi')) {
@@ -237,10 +284,9 @@ async function stubAgentSteps(command: string): Promise<AgentStep[]> {
     ];
   }
 
-  // Generic fallback
   return [
     { kind: 'action', text: `Processing: "${command}"` },
-    { kind: 'response', text: `I received your command: "${command}". The AI model needs to be downloaded to execute tasks on your phone.` },
+    { kind: 'response', text: `I received your command: "${command}". Download the Gemma 4 model or enable cloud fallback in Settings to execute tasks on your phone.` },
   ];
 }
 

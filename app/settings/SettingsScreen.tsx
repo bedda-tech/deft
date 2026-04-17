@@ -17,6 +17,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -96,9 +97,28 @@ export function SettingsScreen() {
             value={settings.cloudFallback}
             onChange={(v) => update({ cloudFallback: v })}
           />
+          {settings.cloudFallback && (
+            <>
+              <View style={styles.divider} />
+              <TextRow
+                label="API Key"
+                value={settings.cloudApiKey}
+                placeholder="sk-… or anthropic key"
+                secureTextEntry
+                onChangeText={(v) => update({ cloudApiKey: v })}
+              />
+              <View style={styles.divider} />
+              <TextRow
+                label="Model"
+                value={settings.cloudModel}
+                placeholder="claude-sonnet-4-6"
+                onChangeText={(v) => update({ cloudModel: v })}
+              />
+            </>
+          )}
           <View style={styles.divider} />
           <SettingDescription
-            text="Falls back to a cloud provider when the on-device model hasn't been downloaded. Requires an internet connection."
+            text="Falls back to a cloud provider when the on-device model hasn't been downloaded. Requires an internet connection and a valid API key."
           />
         </View>
 
@@ -195,6 +215,37 @@ function ModelToggle({
           </TouchableOpacity>
         ))}
       </View>
+    </View>
+  );
+}
+
+function TextRow({
+  label,
+  value,
+  placeholder,
+  secureTextEntry,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  onChangeText: (v: string) => void;
+}) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <TextInput
+        style={styles.textInput}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#444"
+        secureTextEntry={secureTextEntry}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="done"
+      />
     </View>
   );
 }
@@ -326,6 +377,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#e5e5e5',
     flex: 1,
+  },
+  textInput: {
+    flex: 2,
+    fontSize: 13,
+    color: '#e5e5e5',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
 
   description: {
