@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/deft-logo.png" alt="Deft" width="180" />
+</p>
+
 # Deft
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
