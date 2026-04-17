@@ -89,6 +89,10 @@ export function ChatScreen() {
     sendText(inputText);
   }, [inputText, sendText]);
 
+  const handleSuggestion = useCallback((text: string) => {
+    sendText(text);
+  }, [sendText]);
+
   const handleVoice = useCallback(async () => {
     if (recordingState === 'recording') {
       setRecordingState('processing');
@@ -115,7 +119,7 @@ export function ChatScreen() {
         keyboardVerticalOffset={0}
       >
         {messages.length === 0 ? (
-          <EmptyState />
+          <EmptyState onSuggestion={handleSuggestion} />
         ) : (
           <FlatList
             ref={listRef}
@@ -182,7 +186,7 @@ function AgentStatusBar({ step, onStop }: { step: number; onStop: () => void }) 
 // Empty state
 // ---------------------------------------------------------------------------
 
-function EmptyState() {
+function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIconWrap}>
@@ -193,19 +197,19 @@ function EmptyState() {
         Type a command or tap the mic to speak.
       </Text>
       <View style={styles.suggestions}>
-        <SuggestionChip text="Open Settings" />
-        <SuggestionChip text="Send a message to Mom" />
-        <SuggestionChip text="Turn on Wi-Fi" />
+        <SuggestionChip text="Open Settings" onPress={onSuggestion} />
+        <SuggestionChip text="Send a message to Mom" onPress={onSuggestion} />
+        <SuggestionChip text="Turn on Wi-Fi" onPress={onSuggestion} />
       </View>
     </View>
   );
 }
 
-function SuggestionChip({ text }: { text: string }) {
+function SuggestionChip({ text, onPress }: { text: string; onPress: (text: string) => void }) {
   return (
-    <View style={styles.chip}>
+    <TouchableOpacity style={styles.chip} onPress={() => onPress(text)} activeOpacity={0.7}>
       <Text style={styles.chipText}>{text}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
