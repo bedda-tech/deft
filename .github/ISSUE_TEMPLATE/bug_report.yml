@@ -1,0 +1,62 @@
+name: Bug Report
+description: Something isn't working in the Deft app
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For library-level bugs, please open issues on the relevant repo:
+        - [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller/issues)
+        - [react-native-device-agent](https://github.com/bedda-tech/react-native-device-agent/issues)
+        - [react-native-executorch](https://github.com/bedda-tech/react-native-executorch/issues)
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: App area
+      options:
+        - Chat screen
+        - History screen
+        - Settings screen
+        - Onboarding
+        - Model download
+        - Agent overlay
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App version
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device / Android version
+      placeholder: e.g. Pixel 8, Android 15
+    validations:
+      required: true
