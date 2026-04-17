@@ -30,7 +30,8 @@ import {
   clearMessages,
   subscribe,
 } from '../../src/store/chatStore';
-import { processCommand } from '../../src/agent/agentBridge';
+import { processCommand, stopAgent } from '../../src/agent/agentBridge';
+import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 
 // ---------------------------------------------------------------------------
@@ -47,11 +48,23 @@ export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [agentState, setAgentState] = useState<AgentState>({
+    isRunning: false,
+    currentTask: null,
+    currentStep: 0,
+    currentScreenState: null,
+  });
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   // Subscribe to the shared message store
   useEffect(() => {
     const unsub = subscribe(setMessages);
+    return unsub;
+  }, []);
+
+  // Subscribe to agent running state
+  useEffect(() => {
+    const unsub = subscribeAgentState(setAgentState);
     return unsub;
   }, []);
 
@@ -113,12 +126,19 @@ export function ChatScreen() {
             showsVerticalScrollIndicator={false}
           />
         )}
+        {agentState.isRunning && (
+          <AgentStatusBar
+            step={agentState.currentStep}
+            onStop={stopAgent}
+          />
+        )}
         <InputBar
           value={inputText}
           onChangeText={setInputText}
           onSend={handleSend}
           onVoice={handleVoice}
           recordingState={recordingState}
+          agentRunning={agentState.isRunning}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -135,6 +155,24 @@ function Header({ onClear }: { onClear: () => void }) {
       <Text style={styles.headerTitle}>Deft</Text>
       <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.headerClear}>Clear</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Agent status bar (shown while agent is running)
+// ---------------------------------------------------------------------------
+
+function AgentStatusBar({ step, onStop }: { step: number; onStop: () => void }) {
+  return (
+    <View style={styles.agentStatusBar}>
+      <View style={styles.agentStatusDot} />
+      <Text style={styles.agentStatusText}>
+        {step === 0 ? 'Thinking…' : `Step ${step}`}
+      </Text>
+      <TouchableOpacity onPress={onStop} style={styles.stopButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
     </View>
   );
@@ -267,12 +305,14 @@ interface InputBarProps {
   onSend: () => void;
   onVoice: () => void;
   recordingState: RecordingState;
+  agentRunning?: boolean;
 }
 
-function InputBar({ value, onChangeText, onSend, onVoice, recordingState }: InputBarProps) {
+function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentRunning }: InputBarProps) {
   const isRecording = recordingState === 'recording';
   const isProcessing = recordingState === 'processing';
-  const canSend = value.trim().length > 0 && !isRecording && !isProcessing;
+  const isDisabled = isRecording || isProcessing || !!agentRunning;
+  const canSend = value.trim().length > 0 && !isDisabled;
 
   return (
     <View style={styles.inputBar}>
@@ -284,7 +324,7 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState }: Inpu
           isProcessing && styles.micButtonProcessing,
         ]}
         onPress={onVoice}
-        disabled={isProcessing}
+        disabled={isDisabled}
         activeOpacity={0.75}
       >
         <Text style={styles.micIcon}>{isRecording ? '■' : isProcessing ? '…' : '🎙'}</Text>
@@ -292,15 +332,19 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState }: Inpu
 
       {/* Text input */}
       <TextInput
-        style={styles.textInput}
+        style={[styles.textInput, isDisabled && styles.textInputDisabled]}
         value={value}
         onChangeText={onChangeText}
-        placeholder={isRecording ? 'Listening...' : 'Tell Deft what to do'}
+        placeholder={
+          agentRunning ? 'Agent is running…' :
+          isRecording ? 'Listening...' :
+          'Tell Deft what to do'
+        }
         placeholderTextColor="#555"
         onSubmitEditing={onSend}
         returnKeyType="send"
         multiline
-        editable={!isRecording && !isProcessing}
+        editable={!isDisabled}
         blurOnSubmit={false}
       />
 
@@ -659,5 +703,47 @@ const styles = StyleSheet.create({
   },
   sendIconActive: {
     color: '#0a0a0a',
+  },
+
+  // Agent status bar
+  agentStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#0d1f0d',
+    borderTopWidth: 1,
+    borderTopColor: '#1a3a1a',
+    gap: 8,
+  },
+  agentStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+  },
+  agentStatusText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#4ADE80',
+    fontWeight: '500',
+  },
+  stopButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#1a3a1a',
+    borderWidth: 1,
+    borderColor: '#4ADE80',
+  },
+  stopButtonText: {
+    fontSize: 12,
+    color: '#4ADE80',
+    fontWeight: '600',
+  },
+
+  // Disabled text input
+  textInputDisabled: {
+    opacity: 0.5,
   },
 });

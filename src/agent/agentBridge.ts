@@ -17,6 +17,7 @@ import {
 } from '../store/chatStore';
 import { getSettings } from '../store/settingsStore';
 import { addSession, type SessionOutcome } from '../store/historyStore';
+import { agentStarted, agentStepped, agentStopped } from '../store/agentStore';
 
 // ---------------------------------------------------------------------------
 // Cancellation
@@ -37,6 +38,7 @@ export function stopAgent(): void {
 
 export async function processCommand(command: string): Promise<void> {
   _stopped = false;
+  agentStarted(command);
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
 
   let outcome: SessionOutcome = 'complete';
@@ -52,6 +54,8 @@ export async function processCommand(command: string): Promise<void> {
     outcome = 'error';
     summary = `Error: ${err instanceof Error ? err.message : String(err)}`;
     updateMessage(thinkingMsg.id, { text: summary, pending: false });
+  } finally {
+    agentStopped();
   }
 
   addSession(command, actions, outcome, summary);
@@ -132,6 +136,7 @@ async function runRealAgentLoop(
       actions.push(text);
     } else if (event.type === 'observation') {
       addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
+      agentStepped(event.step, event.screenState);
     } else if (event.type === 'thinking' && event.content) {
       // Don't emit thinking as a separate bubble; let the pending message show it.
     } else if (event.type === 'complete') {
@@ -230,6 +235,7 @@ async function runStubAgentLoop(
       if (step.kind === 'action') {
         actions.push(step.text);
         stepsTaken++;
+        agentStepped(stepsTaken);
         await delay(200);
       }
     }
