@@ -4,7 +4,7 @@
  * Users type or speak commands here. The screen shows:
  *   - A scrollable list of chat messages (user commands, agent actions, screen updates)
  *   - A text input bar with a send button
- *   - A mic button for voice input via expo-av
+ *   - A mic button for voice input via expo-speech-recognition (Android SpeechRecognizer)
  *
  * Agent actions and screen-state changes arrive as messages with kind='action'
  * or kind='screen', displayed with distinct visual treatments to distinguish
@@ -93,21 +93,50 @@ export function ChatScreen() {
     sendText(text);
   }, [sendText]);
 
+  // Wire up expo-speech-recognition event listeners. Lazy-required so the app
+  // compiles and runs in environments where the native module isn't linked.
+  useEffect(() => {
+    let subs: Array<{ remove(): void }> = [];
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const sr = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
+
+      subs.push(
+        sr.addSpeechRecognitionListener('result', (event) => {
+          const text = event.results[0]?.transcript ?? '';
+          if (event.isFinal) {
+            setRecordingState('idle');
+            setInputText('');
+            if (text.trim()) {
+              void sendText(text);
+            }
+          } else {
+            // Show live interim transcript in the input field
+            setInputText(text);
+          }
+        }),
+        sr.addSpeechRecognitionListener('end', () => {
+          // Recognition ended without a final result (e.g. silence timeout)
+          setRecordingState((s) => (s === 'recording' ? 'idle' : s));
+        }),
+        sr.addSpeechRecognitionListener('error', () => {
+          setRecordingState('idle');
+        }),
+      );
+    } catch { /* expo-speech-recognition not linked */ }
+
+    return () => { subs.forEach((s) => s.remove()); };
+  }, [sendText]);
+
   const handleVoice = useCallback(async () => {
     if (recordingState === 'recording') {
-      setRecordingState('processing');
-      const transcript = await stopRecording();
+      stopSpeechRecognition();
       setRecordingState('idle');
-      if (transcript) {
-        await sendText(transcript);
-      }
     } else if (recordingState === 'idle') {
-      const started = await startRecording();
-      if (started) {
-        setRecordingState('recording');
-      }
+      const started = await startSpeechRecognition();
+      if (started) setRecordingState('recording');
     }
-  }, [recordingState, sendText]);
+  }, [recordingState]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -315,8 +344,8 @@ interface InputBarProps {
 function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentRunning }: InputBarProps) {
   const isRecording = recordingState === 'recording';
   const isProcessing = recordingState === 'processing';
-  const isDisabled = isRecording || isProcessing || !!agentRunning;
-  const canSend = value.trim().length > 0 && !isDisabled;
+  const inputDisabled = isProcessing || !!agentRunning;
+  const canSend = value.trim().length > 0 && !inputDisabled && !isRecording;
 
   return (
     <View style={styles.inputBar}>
@@ -328,7 +357,7 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
           isProcessing && styles.micButtonProcessing,
         ]}
         onPress={onVoice}
-        disabled={isDisabled}
+        disabled={inputDisabled}
         activeOpacity={0.75}
       >
         <Text style={styles.micIcon}>{isRecording ? '■' : isProcessing ? '…' : '🎙'}</Text>
@@ -341,14 +370,14 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
         onChangeText={onChangeText}
         placeholder={
           agentRunning ? 'Agent is running…' :
-          isRecording ? 'Listening...' :
+          isRecording ? 'Listening… (tap ■ to stop)' :
           'Tell Deft what to do'
         }
         placeholderTextColor="#555"
         onSubmitEditing={onSend}
         returnKeyType="send"
         multiline
-        editable={!isDisabled}
+        editable={!inputDisabled && !isRecording}
         blurOnSubmit={false}
       />
 
@@ -366,87 +395,41 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
 }
 
 // ---------------------------------------------------------------------------
-// Voice recording helpers (expo-av)
+// Voice recognition helpers (expo-speech-recognition)
 // ---------------------------------------------------------------------------
 
 /**
- * Minimal shape of an expo-av Recording object that we depend on.
- * Lets us type-check without the package installed -- expo-av satisfies
- * this interface at runtime once installed.
+ * Request microphone permission and start Android's native SpeechRecognizer.
+ * Interim results flow back via the 'result' event listener set up in the
+ * ChatScreen component. Falls back gracefully when the module is not linked.
  */
-interface RecordingLike {
-  stopAndUnloadAsync(): Promise<void>;
-  getURI(): string | null;
-}
-
-/**
- * Minimal shape of the expo-av Audio namespace we use.
- * Keeps the code type-safe without requiring expo-av to be installed.
- */
-interface AudioLike {
-  requestPermissionsAsync(): Promise<{ status: string }>;
-  setAudioModeAsync(options: Record<string, unknown>): Promise<void>;
-  Recording: {
-    createAsync(preset: unknown): Promise<{ recording: RecordingLike }>;
-    RecordingOptionsPresets?: { HIGH_QUALITY: unknown };
-  };
-  RecordingOptionsPresets: { HIGH_QUALITY: unknown };
-}
-
-/**
- * Start recording via expo-av.
- * Falls back gracefully if expo-av is not linked.
- * Returns true if recording started successfully.
- */
-async function startRecording(): Promise<boolean> {
+async function startSpeechRecognition(): Promise<boolean> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Audio } = require('expo-av') as { Audio: AudioLike };
-    const { status } = await Audio.requestPermissionsAsync();
+    const { ExpoSpeechRecognitionModule } = require('expo-speech-recognition') as
+      typeof import('expo-speech-recognition');
+    const { status } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (status !== 'granted') return false;
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-    });
-    const { recording } = await Audio.Recording.createAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY,
-    );
-    // Store on module-level so stopRecording can access it
-    _activeRecording = recording;
+    ExpoSpeechRecognitionModule.start({ lang: 'en-US', interimResults: true, continuous: false });
     return true;
   } catch {
-    // expo-av not linked -- return false so UI stays usable
     return false;
   }
 }
 
 /**
- * Stop the active recording and return the URI of the audio file.
- * Transcription is handled by the agentBridge via the local LLM's audio
- * capability (or a separate Whisper module in future).
- *
- * For now, returns null and lets the agent bridge handle an empty command
- * gracefully. This keeps the interface functional before the audio pipeline
- * is wired up.
+ * Stop an in-progress speech recognition session. The 'end' event will fire
+ * once Android has finished processing, at which point the component resets
+ * its recording state to idle.
  */
-async function stopRecording(): Promise<string | null> {
-  if (!_activeRecording) return null;
+function stopSpeechRecognition(): void {
   try {
-    await _activeRecording.stopAndUnloadAsync();
-    const uri = _activeRecording.getURI();
-    _activeRecording = null;
-    // TODO: pass `uri` to a transcription module (Whisper / LLM audio input)
-    // For now we return null -- voice UI is functional, transcript TBD
-    void uri;
-    return null;
-  } catch {
-    _activeRecording = null;
-    return null;
-  }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { ExpoSpeechRecognitionModule } = require('expo-speech-recognition') as
+      typeof import('expo-speech-recognition');
+    ExpoSpeechRecognitionModule.stop();
+  } catch { /* not linked */ }
 }
-
-// Module-level reference to the active Recording object
-let _activeRecording: RecordingLike | null = null;
 
 // ---------------------------------------------------------------------------
 // Styles

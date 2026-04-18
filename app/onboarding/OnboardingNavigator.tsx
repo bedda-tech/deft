@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { WelcomeScreen } from './WelcomeScreen';
 import { PermissionsScreen } from './PermissionsScreen';
+import { OverlayPermissionScreen } from './OverlayPermissionScreen';
 import { ModelDownloadScreen } from './ModelDownloadScreen';
 import { ReadyScreen } from './ReadyScreen';
 
-type OnboardingStep = 'welcome' | 'permissions' | 'model-download' | 'ready';
+type OnboardingStep = 'welcome' | 'permissions' | 'overlay' | 'model-download' | 'ready';
 
 interface Props {
   onComplete: () => void;
@@ -25,7 +26,10 @@ export function OnboardingNavigator({ onComplete }: Props) {
       return <WelcomeScreen onNext={() => setStep('permissions')} />;
 
     case 'permissions':
-      return <PermissionsScreen onNext={() => setStep('model-download')} />;
+      return <PermissionsScreen onNext={() => setStep('overlay')} />;
+
+    case 'overlay':
+      return <OverlayPermissionScreen onNext={() => setStep('model-download')} />;
 
     case 'model-download':
       return <ModelDownloadScreen onNext={() => setStep('ready')} />;

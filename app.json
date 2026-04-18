@@ -33,9 +33,10 @@
     },
     "plugins": [
       [
-        "expo-av",
+        "expo-speech-recognition",
         {
-          "microphonePermission": "Deft uses the microphone to let you speak commands."
+          "microphonePermission": "Deft uses the microphone to listen to your voice commands.",
+          "speechRecognitionPermission": "Deft uses speech recognition to understand your voice commands."
         }
       ]
     ]

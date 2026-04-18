@@ -70,7 +70,7 @@ export function ModelDownloadScreen({ onNext }: Props) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.badge}>
-          <Text style={styles.badgeStep}>3 of 3</Text>
+          <Text style={styles.badgeStep}>4 of 4</Text>
         </View>
 
         <Text style={styles.headline}>Download AI Model</Text>
