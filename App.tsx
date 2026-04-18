@@ -10,6 +10,7 @@ import { loadSettings } from './src/store/settingsStore';
 import { AgentOverlay } from './src/components/AgentOverlay';
 import {
   registerGenerateFn,
+  registerGenerateWithImageFn,
 } from './src/agent/llmBridge';
 
 type AppState = 'loading' | 'onboarding' | 'main';
@@ -88,6 +89,7 @@ async function initOnDeviceLLM(model: 'E2B' | 'E4B'): Promise<void> {
     LLMModule: {
       fromModelName: (name: string) => Promise<{
         generate: (messages: { role: string; content: string }[], tools?: unknown[]) => Promise<string>;
+        forward: (input: string, imagePaths?: string[]) => Promise<string>;
       }>;
     };
     GEMMA4_E2B: string;
@@ -99,6 +101,12 @@ async function initOnDeviceLLM(model: 'E2B' | 'E4B'): Promise<void> {
 
   registerGenerateFn(async (prompt: string) => {
     return llm.generate([{ role: 'user', content: prompt }]);
+  });
+
+  // Register the vision function using the lower-level `forward` API so the
+  // agent loop can pass screenshots alongside the prompt for grounded inference.
+  registerGenerateWithImageFn(async (prompt: string, imagePath: string) => {
+    return llm.forward(prompt, [imagePath]);
   });
 }
 
