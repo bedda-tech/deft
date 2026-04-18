@@ -1,0 +1,8 @@
+Initial release of Deft.
+
+• On-device AI agent powered by Gemma 4 E4B
+• Natural language phone control via Android AccessibilityService
+• Multi-step task execution across any app
+• Session history with action logs
+• Optional cloud fallback (OpenAI / Anthropic)
+• Guided onboarding for Accessibility Service setup and model download

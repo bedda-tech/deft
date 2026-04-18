@@ -18,6 +18,7 @@ import {
 import { getSettings } from '../store/settingsStore';
 import { addSession, type SessionOutcome } from '../store/historyStore';
 import { agentStarted, agentStepped, agentStopped } from '../store/agentStore';
+import { getGenerateFn, getGenerateWithImageFn } from './llmBridge';
 
 // ---------------------------------------------------------------------------
 // Cancellation
@@ -110,6 +111,10 @@ async function runRealAgentLoop(
       baseUrl?: string;
       apiFormat?: 'openai' | 'anthropic';
     }) => unknown;
+    GemmaProvider: new (options: {
+      generateFn?: (prompt: string) => Promise<string>;
+      generateWithImageFn?: (prompt: string, imagePath: string) => Promise<string>;
+    }) => unknown;
   };
 
   const provider = buildProvider(deviceAgent.CloudProvider, settings);
@@ -164,25 +169,44 @@ async function runRealAgentLoop(
 // ---------------------------------------------------------------------------
 
 function buildProvider(
-  CloudProvider: new (options: {
-    apiKey: string;
-    model: string;
-    baseUrl?: string;
-    apiFormat?: 'openai' | 'anthropic';
-  }) => unknown,
+  deviceAgent: {
+    CloudProvider: new (options: {
+      apiKey: string;
+      model: string;
+      baseUrl?: string;
+      apiFormat?: 'openai' | 'anthropic';
+    }) => unknown;
+    GemmaProvider: new (options: {
+      generateFn?: (prompt: string) => Promise<string>;
+      generateWithImageFn?: (prompt: string, imagePath: string) => Promise<string>;
+    }) => unknown;
+  },
   settings: ReturnType<typeof getSettings>,
 ): unknown {
+  // Prefer cloud when explicitly enabled with a key.
   if (settings.cloudFallback && settings.cloudApiKey) {
     const isAnthropic = settings.cloudModel.startsWith('claude');
-    return new CloudProvider({
+    return new deviceAgent.CloudProvider({
       apiKey: settings.cloudApiKey,
       model: settings.cloudModel,
       baseUrl: isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1',
       apiFormat: isAnthropic ? 'anthropic' : 'openai',
     });
   }
-  // No valid provider configured -- throw so we fall back to stub.
-  throw new Error('No provider configured. Enable cloud fallback and enter an API key in Settings.');
+
+  // Use on-device Gemma if it was registered during app startup.
+  const generateFn = getGenerateFn();
+  if (generateFn) {
+    return new deviceAgent.GemmaProvider({
+      generateFn,
+      generateWithImageFn: getGenerateWithImageFn() ?? undefined,
+    });
+  }
+
+  // Nothing available — fall back to stub.
+  throw new Error(
+    'No provider configured. Download the Gemma 4 model from Settings, or enable cloud fallback.',
+  );
 }
 
 // ---------------------------------------------------------------------------

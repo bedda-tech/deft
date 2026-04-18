@@ -1,0 +1,43 @@
+Deft is an open-source AI phone agent that lets you control your Android phone using natural language — entirely on-device, with no cloud APIs, no subscriptions, and no data leaving your phone.
+
+<b>How it works</b>
+
+Tell Deft what to do: "Open Settings and turn on Wi-Fi", "Send a message to Mom", or "Search for the nearest coffee shop." Deft reads your screen using Android's Accessibility Service, reasons about what to do using a local AI model (Gemma 4), and executes the necessary taps, swipes, and text entry — all without ever connecting to a remote server.
+
+<b>Key features</b>
+
+• <b>Fully on-device</b> — Gemma 4 E4B runs locally. Your commands, screen data, and actions never leave your phone.
+• <b>Natural language control</b> — Describe any task in plain English. Deft handles the details.
+• <b>Multi-step tasks</b> — Deft can complete complex, multi-step tasks across multiple apps automatically.
+• <b>Live action feed</b> — Watch in real time as Deft reads the screen and takes actions on your behalf.
+• <b>Session history</b> — Review every past agent session with a full action log and outcome.
+• <b>Cloud fallback (optional)</b> — Optionally configure an OpenAI or Anthropic API key for cloud-assisted inference when on-device performance isn't enough.
+• <b>Open source</b> — MIT licensed. Every line of code is public.
+
+<b>Privacy first</b>
+
+Deft uses Android's AccessibilityService to read the screen and perform actions. This data is processed entirely locally by the on-device AI model. Nothing is logged, stored remotely, or transmitted. You can review the full source code at github.com/bedda-tech/deft.
+
+<b>Powered by open-source libraries</b>
+
+Deft is built on three open-source React Native libraries, all available on GitHub:
+• react-native-accessibility-controller — Android AccessibilityService for React Native
+• react-native-executorch — On-device LLM inference with Gemma 4 support
+• react-native-device-agent — The agent loop connecting the LLM to phone control
+
+<b>Requirements</b>
+
+• Android 10 (API 29) or higher
+• ~2.5 GB free storage for the Gemma 4 model download
+• Accessibility Service permission (required for screen reading and actions)
+
+<b>Getting started</b>
+
+1. Install Deft and open it.
+2. Grant the Accessibility Service permission when prompted.
+3. Download the Gemma 4 model (one-time, ~2.5 GB).
+4. Type or speak a command and watch Deft work.
+
+<b>Open source &amp; community</b>
+
+Deft is developed openly at github.com/bedda-tech/deft. Contributions, bug reports, and feature requests are welcome. Join the conversation on GitHub Discussions.

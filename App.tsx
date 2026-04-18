@@ -8,6 +8,9 @@ import { SettingsScreen } from './app/settings/SettingsScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
 import { loadSettings } from './src/store/settingsStore';
 import { AgentOverlay } from './src/components/AgentOverlay';
+import {
+  registerGenerateFn,
+} from './src/agent/llmBridge';
 
 type AppState = 'loading' | 'onboarding' | 'main';
 type MainTab = 'chat' | 'history' | 'settings';
@@ -25,8 +28,11 @@ export default function App() {
   const [tab, setTab] = useState<MainTab>('chat');
 
   useEffect(() => {
-    Promise.all([loadSettings(), isOnboardingComplete()]).then(([, done]) => {
+    Promise.all([loadSettings(), isOnboardingComplete()]).then(([settings, done]) => {
       setAppState(done ? 'main' : 'onboarding');
+      // Try to initialize the on-device LLM after settings are loaded.
+      // Falls back gracefully if react-native-executorch is not linked.
+      initOnDeviceLLM(settings.model).catch(() => {});
     });
   }, []);
 
@@ -65,6 +71,35 @@ export default function App() {
       <StatusBar style="light" />
     </View>
   );
+}
+
+// ---------------------------------------------------------------------------
+// On-device LLM initialization
+// ---------------------------------------------------------------------------
+
+/**
+ * Try to load the on-device Gemma model and register its generate functions
+ * in the llmBridge singleton. No-ops (throws) if react-native-executorch is
+ * not linked or the model has not been downloaded.
+ */
+async function initOnDeviceLLM(model: 'E2B' | 'E4B'): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const executorch = require('react-native-executorch') as {
+    LLMModule: {
+      fromModelName: (name: string) => Promise<{
+        generate: (messages: { role: string; content: string }[], tools?: unknown[]) => Promise<string>;
+      }>;
+    };
+    GEMMA4_E2B: string;
+    GEMMA4_E4B: string;
+  };
+
+  const modelName = model === 'E2B' ? executorch.GEMMA4_E2B : executorch.GEMMA4_E4B;
+  const llm = await executorch.LLMModule.fromModelName(modelName);
+
+  registerGenerateFn(async (prompt: string) => {
+    return llm.generate([{ role: 'user', content: prompt }]);
+  });
 }
 
 // ---------------------------------------------------------------------------
