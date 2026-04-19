@@ -1,9 +1,12 @@
 /**
  * Agent session history store.
  *
- * Ephemeral -- sessions are kept in memory for the current app session only.
- * Subscribers are notified whenever the session list changes.
+ * Sessions are persisted to AsyncStorage under the key STORAGE_KEY and
+ * restored automatically on startup. The in-memory API remains synchronous;
+ * persistence is fire-and-forget on every write.
  */
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SessionOutcome = 'complete' | 'stopped' | 'error';
 
@@ -23,8 +26,47 @@ export interface AgentSession {
   timestamp: number;
 }
 
+const STORAGE_KEY = 'deft.sessions';
+const MAX_STORED_SESSIONS = 100;
+
 let _sessions: AgentSession[] = [];
 let _listeners: Array<(sessions: AgentSession[]) => void> = [];
+let _loaded = false;
+
+// ---------------------------------------------------------------------------
+// Persistence helpers
+// ---------------------------------------------------------------------------
+
+function persist(): void {
+  const toSave = _sessions.slice(0, MAX_STORED_SESSIONS);
+  AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)).catch(() => {
+    // Ignore write errors — history is non-critical data.
+  });
+}
+
+async function loadFromStorage(): Promise<void> {
+  if (_loaded) return;
+  _loaded = true;
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed: AgentSession[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        _sessions = parsed;
+        notify();
+      }
+    }
+  } catch {
+    // Corrupt data or unavailable storage — start with empty history.
+  }
+}
+
+// Begin loading as soon as this module is imported.
+loadFromStorage();
+
+// ---------------------------------------------------------------------------
+// Notification helpers
+// ---------------------------------------------------------------------------
 
 function notify() {
   const snapshot = [..._sessions];
@@ -34,6 +76,10 @@ function notify() {
 function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export function subscribeSessions(
   listener: (sessions: AgentSession[]) => void,
@@ -69,9 +115,11 @@ export function addSession(
     ..._sessions,
   ];
   notify();
+  persist();
 }
 
 export function clearSessions(): void {
   _sessions = [];
   notify();
+  AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
 }

@@ -165,6 +165,23 @@ async function runRealAgentLoop(
 }
 
 // ---------------------------------------------------------------------------
+// Agent system prompt
+// ---------------------------------------------------------------------------
+
+const AGENT_SYSTEM_PROMPT = `You are Deft, an on-device AI phone agent. \
+Your job is to control an Android phone on behalf of the user by reading the \
+screen and executing actions.
+
+Guidelines:
+- Use the read_screen tool first to understand what is on screen before acting.
+- Prefer tapping by nodeId when available; fall back to coordinates only if needed.
+- After each action wait for the screen to update before continuing.
+- Call task_complete when the task is fully done with a concise 1–2 sentence summary.
+- If a step fails, try an alternative approach before giving up.
+- Never perform destructive actions (deleting accounts, purchasing items, sending messages) \
+unless explicitly confirmed by the user in the task description.`;
+
+// ---------------------------------------------------------------------------
 // Provider construction
 // ---------------------------------------------------------------------------
 
@@ -175,6 +192,7 @@ function buildProvider(
       model: string;
       baseUrl?: string;
       apiFormat?: 'openai' | 'anthropic';
+      system?: string;
     }) => unknown;
     GemmaProvider: new (options: {
       generateFn?: (prompt: string) => Promise<string>;
@@ -191,6 +209,7 @@ function buildProvider(
       model: settings.cloudModel,
       baseUrl: isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1',
       apiFormat: isAnthropic ? 'anthropic' : 'openai',
+      system: AGENT_SYSTEM_PROMPT,
     });
   }
 
