@@ -7,7 +7,7 @@
  *   - Short summary from the agent
  *   - Relative timestamp
  *
- * Sessions are ephemeral (in-memory only; cleared on app restart).
+ * Sessions are persisted to AsyncStorage (up to 100) and restored on startup.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
