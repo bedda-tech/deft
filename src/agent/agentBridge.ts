@@ -117,7 +117,7 @@ async function runRealAgentLoop(
     }) => unknown;
   };
 
-  const provider = buildProvider(deviceAgent.CloudProvider, settings);
+  const provider = buildProvider(deviceAgent, settings);
   const loop = new deviceAgent.AgentLoop({
     provider,
     maxSteps: settings.maxSteps,

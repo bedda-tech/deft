@@ -365,7 +365,7 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
 
       {/* Text input */}
       <TextInput
-        style={[styles.textInput, isDisabled && styles.textInputDisabled]}
+        style={[styles.textInput, inputDisabled && styles.textInputDisabled]}
         value={value}
         onChangeText={onChangeText}
         placeholder={
