@@ -11,16 +11,32 @@ jobs:
     name: TypeScript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout deft
+        uses: actions/checkout@v4
+        with:
+          path: deft
+
+      - name: Checkout react-native-device-agent
+        uses: actions/checkout@v4
+        with:
+          repository: bedda-tech/react-native-device-agent
+          path: react-native-device-agent
+
+      - name: Checkout react-native-accessibility-controller
+        uses: actions/checkout@v4
+        with:
+          repository: bedda-tech/react-native-accessibility-controller
+          path: react-native-accessibility-controller
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        working-directory: deft
+        run: npm install
 
       - name: Typecheck
+        working-directory: deft
         run: npm run typecheck
