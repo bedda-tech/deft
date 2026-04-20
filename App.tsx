@@ -83,21 +83,32 @@ export default function App() {
  * in the llmBridge singleton. No-ops (throws) if react-native-executorch is
  * not linked or the model has not been downloaded.
  */
+type ModelConfig = {
+  modelName: string;
+  capabilities: readonly string[];
+  modelSource: string;
+  tokenizerSource: string;
+  tokenizerConfigSource: string;
+  generationConfigSource: string;
+};
+
+type LLMInstance = {
+  generate: (messages: { role: string; content: string }[], tools?: unknown[]) => Promise<string>;
+  forward: (input: string, imagePaths?: string[]) => Promise<string>;
+};
+
 async function initOnDeviceLLM(model: 'E2B' | 'E4B'): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const executorch = require('react-native-executorch') as {
     LLMModule: {
-      fromModelName: (name: string) => Promise<{
-        generate: (messages: { role: string; content: string }[], tools?: unknown[]) => Promise<string>;
-        forward: (input: string, imagePaths?: string[]) => Promise<string>;
-      }>;
+      fromModelName: (config: ModelConfig) => Promise<LLMInstance>;
     };
-    GEMMA4_E2B: string;
-    GEMMA4_E4B: string;
+    GEMMA4_E2B_QUANTIZED: ModelConfig;
+    GEMMA4_E4B_QUANTIZED: ModelConfig;
   };
 
-  const modelName = model === 'E2B' ? executorch.GEMMA4_E2B : executorch.GEMMA4_E4B;
-  const llm = await executorch.LLMModule.fromModelName(modelName);
+  const config = model === 'E2B' ? executorch.GEMMA4_E2B_QUANTIZED : executorch.GEMMA4_E4B_QUANTIZED;
+  const llm = await executorch.LLMModule.fromModelName(config);
 
   registerGenerateFn(async (prompt: string) => {
     return llm.generate([{ role: 'user', content: prompt }]);
