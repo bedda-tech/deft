@@ -17,6 +17,7 @@
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-accessibility-controller": "file:../react-native-accessibility-controller",
     "react-native-device-agent": "file:../react-native-device-agent"
   },
   "devDependencies": {
