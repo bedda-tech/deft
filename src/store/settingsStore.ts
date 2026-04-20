@@ -60,6 +60,20 @@ function getStorage(): AsyncStorageLike {
 let _cache: Settings = { ...DEFAULT_SETTINGS };
 let _loaded = false;
 
+type SettingsListener = (settings: Settings) => void;
+const _listeners = new Set<SettingsListener>();
+
+/** Subscribe to settings changes. Returns an unsubscribe function. */
+export function subscribeSettings(fn: SettingsListener): () => void {
+  _listeners.add(fn);
+  return () => { _listeners.delete(fn); };
+}
+
+function _notify(): void {
+  const snapshot = { ..._cache };
+  _listeners.forEach((fn) => fn(snapshot));
+}
+
 /** Load settings from storage. Call once at app startup. */
 export async function loadSettings(): Promise<Settings> {
   try {
@@ -83,6 +97,7 @@ export function getSettings(): Settings {
 /** Merge a partial patch into the settings and persist. */
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   _cache = { ..._cache, ...patch };
+  _notify();
   try {
     await getStorage().setItem(SETTINGS_KEY, JSON.stringify(_cache));
   } catch {
@@ -93,6 +108,7 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
 /** Reset all settings to factory defaults. */
 export async function resetSettings(): Promise<void> {
   _cache = { ...DEFAULT_SETTINGS };
+  _notify();
   try {
     await getStorage().setItem(SETTINGS_KEY, JSON.stringify(_cache));
   } catch {

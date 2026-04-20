@@ -15,13 +15,26 @@
 
 type GenerateFn = (prompt: string) => Promise<string>;
 type GenerateWithImageFn = (prompt: string, imagePath: string) => Promise<string>;
+type ReadyListener = (ready: boolean) => void;
 
 let _generateFn: GenerateFn | null = null;
 let _generateWithImageFn: GenerateWithImageFn | null = null;
+const _readyListeners = new Set<ReadyListener>();
+
+function _notifyReady(ready: boolean): void {
+  _readyListeners.forEach((fn) => fn(ready));
+}
+
+/** Subscribe to on-device LLM ready state changes. Returns unsubscribe. */
+export function subscribeIsLLMReady(fn: ReadyListener): () => void {
+  _readyListeners.add(fn);
+  return () => { _readyListeners.delete(fn); };
+}
 
 /** Register the on-device text generation function. */
 export function registerGenerateFn(fn: GenerateFn): void {
   _generateFn = fn;
+  _notifyReady(true);
 }
 
 /** Register the on-device vision generation function (optional). */
@@ -44,8 +57,9 @@ export function isOnDeviceLLMReady(): boolean {
   return _generateFn !== null;
 }
 
-/** Clear registered functions (e.g., when model is unloaded). */
+/** Clear registered functions (e.g., when model is unloaded or switching). */
 export function unregisterLLM(): void {
   _generateFn = null;
   _generateWithImageFn = null;
+  _notifyReady(false);
 }

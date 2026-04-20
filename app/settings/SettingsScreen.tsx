@@ -10,7 +10,7 @@
  * Settings are loaded from storage on mount and saved immediately on change.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -28,10 +28,20 @@ import {
   resetSettings,
   saveSettings,
 } from '../../src/store/settingsStore';
+import {
+  isOnDeviceLLMReady,
+  subscribeIsLLMReady,
+} from '../../src/agent/llmBridge';
+
+type LLMStatus = 'ready' | 'loading' | 'unavailable';
 
 export function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
   const [loaded, setLoaded] = useState(false);
+  const [llmStatus, setLLMStatus] = useState<LLMStatus>(
+    isOnDeviceLLMReady() ? 'ready' : 'unavailable',
+  );
+  const modelChangedRef = useRef(false);
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -40,9 +50,26 @@ export function SettingsScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    return subscribeIsLLMReady((ready) => {
+      if (ready) {
+        setLLMStatus('ready');
+        modelChangedRef.current = false;
+      } else if (modelChangedRef.current) {
+        setLLMStatus('loading');
+      } else {
+        setLLMStatus('unavailable');
+      }
+    });
+  }, []);
+
   const update = useCallback(async (patch: Partial<Settings>) => {
     const next = { ...settings, ...patch };
     setSettings(next);
+    if (patch.model !== undefined && patch.model !== settings.model) {
+      modelChangedRef.current = true;
+      setLLMStatus('loading');
+    }
     await saveSettings(patch);
   }, [settings]);
 
@@ -79,6 +106,8 @@ export function SettingsScreen() {
             value={settings.model}
             onChange={(model) => update({ model })}
           />
+          <View style={styles.divider} />
+          <LLMStatusRow status={llmStatus} />
           <View style={styles.divider} />
           <SettingDescription
             text={
@@ -169,6 +198,21 @@ export function SettingsScreen() {
 
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title.toUpperCase()}</Text>;
+}
+
+function LLMStatusRow({ status }: { status: LLMStatus }) {
+  const config = {
+    ready:       { label: 'Model ready',   dot: '#4ADE80', text: '#4ADE80' },
+    loading:     { label: 'Loading model…', dot: '#FACC15', text: '#FACC15' },
+    unavailable: { label: 'Not downloaded', dot: '#555',    text: '#666'    },
+  }[status];
+
+  return (
+    <View style={styles.statusRow}>
+      <View style={[styles.statusDot, { backgroundColor: config.dot }]} />
+      <Text style={[styles.statusText, { color: config.text }]}>{config.label}</Text>
+    </View>
+  );
 }
 
 function SettingDescription({ text }: { text: string }) {
@@ -402,6 +446,24 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   // Segment control (E2B / E4B)

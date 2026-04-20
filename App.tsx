@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { OnboardingNavigator } from './app/onboarding/OnboardingNavigator';
@@ -6,11 +6,12 @@ import { ChatScreen } from './app/chat/ChatScreen';
 import { HistoryScreen } from './app/history/HistoryScreen';
 import { SettingsScreen } from './app/settings/SettingsScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
-import { loadSettings } from './src/store/settingsStore';
+import { loadSettings, subscribeSettings } from './src/store/settingsStore';
 import { AgentOverlay } from './src/components/AgentOverlay';
 import {
   registerGenerateFn,
   registerGenerateWithImageFn,
+  unregisterLLM,
 } from './src/agent/llmBridge';
 
 type AppState = 'loading' | 'onboarding' | 'main';
@@ -27,13 +28,24 @@ type MainTab = 'chat' | 'history' | 'settings';
 export default function App() {
   const [appState, setAppState] = useState<AppState>('loading');
   const [tab, setTab] = useState<MainTab>('chat');
+  const currentModelRef = useRef<'E2B' | 'E4B' | null>(null);
 
   useEffect(() => {
     Promise.all([loadSettings(), isOnboardingComplete()]).then(([settings, done]) => {
       setAppState(done ? 'main' : 'onboarding');
-      // Try to initialize the on-device LLM after settings are loaded.
-      // Falls back gracefully if react-native-executorch is not linked.
+      currentModelRef.current = settings.model;
       initOnDeviceLLM(settings.model).catch(() => {});
+    });
+  }, []);
+
+  // Reinitialize the on-device LLM when the user changes the model in Settings.
+  useEffect(() => {
+    return subscribeSettings((settings) => {
+      if (settings.model !== currentModelRef.current) {
+        currentModelRef.current = settings.model;
+        unregisterLLM();
+        initOnDeviceLLM(settings.model).catch(() => {});
+      }
     });
   }, []);
 
