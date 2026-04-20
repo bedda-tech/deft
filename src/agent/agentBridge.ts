@@ -151,7 +151,11 @@ async function runRealAgentLoop(
       addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
       agentStepped(event.step, event.screenState);
     } else if (event.type === 'thinking' && event.content) {
-      // Don't emit thinking as a separate bubble; let the pending message show it.
+      // Show live thinking content in the pending bubble (truncated for space).
+      const preview = event.content.length > 120
+        ? event.content.slice(0, 117) + '…'
+        : event.content;
+      updateMessage(thinkingMsgId, { text: preview, pending: true });
     } else if (event.type === 'complete') {
       finalSummary = event.result;
       outcome = 'complete';
