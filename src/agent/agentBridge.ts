@@ -110,10 +110,16 @@ async function runRealAgentLoop(
       model: string;
       baseUrl?: string;
       apiFormat?: 'openai' | 'anthropic';
+      system?: string;
     }) => unknown;
     GemmaProvider: new (options: {
       generateFn?: (prompt: string) => Promise<string>;
       generateWithImageFn?: (prompt: string, imagePath: string) => Promise<string>;
+    }) => unknown;
+    FallbackProvider: new (options: {
+      onDevice: unknown;
+      cloud: unknown;
+      debug?: boolean;
     }) => unknown;
   };
 
@@ -198,11 +204,18 @@ function buildProvider(
       generateFn?: (prompt: string) => Promise<string>;
       generateWithImageFn?: (prompt: string, imagePath: string) => Promise<string>;
     }) => unknown;
+    FallbackProvider: new (options: {
+      onDevice: unknown;
+      cloud: unknown;
+      debug?: boolean;
+    }) => unknown;
   },
   settings: ReturnType<typeof getSettings>,
 ): unknown {
-  // Prefer cloud when explicitly enabled with a key.
-  if (settings.cloudFallback && settings.cloudApiKey) {
+  const generateFn = getGenerateFn();
+  const hasCloud = settings.cloudFallback && !!settings.cloudApiKey;
+
+  const buildCloudProvider = () => {
     const isAnthropic = settings.cloudModel.startsWith('claude');
     return new deviceAgent.CloudProvider({
       apiKey: settings.cloudApiKey,
@@ -211,18 +224,33 @@ function buildProvider(
       apiFormat: isAnthropic ? 'anthropic' : 'openai',
       system: AGENT_SYSTEM_PROMPT,
     });
-  }
+  };
 
-  // Use on-device Gemma if it was registered during app startup.
-  const generateFn = getGenerateFn();
-  if (generateFn) {
-    return new deviceAgent.GemmaProvider({
-      generateFn,
+  const buildGemmaProvider = () =>
+    new deviceAgent.GemmaProvider({
+      generateFn: generateFn!,
       generateWithImageFn: getGenerateWithImageFn() ?? undefined,
+    });
+
+  // Both on-device and cloud: use FallbackProvider (prefers on-device, auto-falls back to cloud).
+  if (generateFn && hasCloud) {
+    return new deviceAgent.FallbackProvider({
+      onDevice: buildGemmaProvider(),
+      cloud: buildCloudProvider(),
     });
   }
 
-  // Nothing available — fall back to stub.
+  // Only cloud configured.
+  if (hasCloud) {
+    return buildCloudProvider();
+  }
+
+  // Only on-device Gemma available.
+  if (generateFn) {
+    return buildGemmaProvider();
+  }
+
+  // Nothing available — let the caller fall through to the stub.
   throw new Error(
     'No provider configured. Download the Gemma 4 model from Settings, or enable cloud fallback.',
   );
