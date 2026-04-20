@@ -184,14 +184,14 @@ async function downloadModel(callbacks: DownloadCallbacks): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const executorch = require('react-native-executorch');
-    const { GEMMA4_E4B, downloadModel: downloadFn } = executorch as {
-      GEMMA4_E4B: string;
+    const { GEMMA4_E4B_QUANTIZED, downloadModel: downloadFn } = executorch as {
+      GEMMA4_E4B_QUANTIZED: object;
       downloadModel: (
-        model: string,
+        model: object,
         onProgress: (p: number) => void,
       ) => Promise<void>;
     };
-    await downloadFn(GEMMA4_E4B, callbacks.onProgress);
+    await downloadFn(GEMMA4_E4B_QUANTIZED, callbacks.onProgress);
     callbacks.onComplete();
   } catch (err) {
     // Native module not linked or model constant not available --
