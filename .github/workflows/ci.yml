@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: deft
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Typecheck
         working-directory: deft
