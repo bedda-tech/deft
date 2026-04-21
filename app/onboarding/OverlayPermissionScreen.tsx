@@ -74,7 +74,7 @@ export function OverlayPermissionScreen({ onNext }: Props) {
           <Text style={styles.stepsTitle}>How to enable</Text>
           <InstructionStep number={1} text="Tap Open Settings below" />
           <InstructionStep number={2} text="Find Deft in the list" />
-          <InstructionStep number={3} text="Toggle "Allow display over other apps"" />
+          <InstructionStep number={3} text={'Toggle "Allow display over other apps"'} />
           <InstructionStep number={4} text="Return to Deft" />
         </View>
 
