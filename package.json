@@ -18,7 +18,8 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-accessibility-controller": "file:../react-native-accessibility-controller",
-    "react-native-device-agent": "file:../react-native-device-agent"
+    "react-native-device-agent": "file:../react-native-device-agent",
+    "react-native-executorch": "file:../react-native-executorch/packages/react-native-executorch"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

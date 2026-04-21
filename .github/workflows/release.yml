@@ -31,6 +31,12 @@ jobs:
           repository: bedda-tech/react-native-accessibility-controller
           path: react-native-accessibility-controller
 
+      - name: Checkout react-native-executorch
+        uses: actions/checkout@v4
+        with:
+          repository: bedda-tech/react-native-executorch
+          path: react-native-executorch
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
