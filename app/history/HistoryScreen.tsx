@@ -13,18 +13,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
+  LayoutAnimation,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from 'react-native';
+
 import {
   type AgentSession,
   type SessionOutcome,
   clearSessions,
   subscribeSessions,
 } from '../../src/store/historyStore';
+
+// Enable LayoutAnimation on Android (required for animated expand/collapse).
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export function HistoryScreen() {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
@@ -64,15 +73,28 @@ export function HistoryScreen() {
 // ---------------------------------------------------------------------------
 
 function SessionRow({ session }: { session: AgentSession }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasExtra = session.actions.length > 3;
+
+  const toggle = useCallback(() => {
+    if (!hasExtra) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((v) => !v);
+  }, [hasExtra]);
+
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      activeOpacity={hasExtra ? 0.75 : 1}
+      onPress={toggle}
+      style={styles.row}
+    >
       <View style={styles.rowTop}>
         <Text style={styles.command} numberOfLines={2}>{session.command}</Text>
         <OutcomeBadge outcome={session.outcome} />
       </View>
 
       {session.summary ? (
-        <Text style={styles.summary} numberOfLines={3}>{session.summary}</Text>
+        <Text style={styles.summary} numberOfLines={expanded ? undefined : 3}>{session.summary}</Text>
       ) : null}
 
       <View style={styles.rowMeta}>
@@ -84,9 +106,9 @@ function SessionRow({ session }: { session: AgentSession }) {
       </View>
 
       {session.actions.length > 0 && (
-        <ActionList actions={session.actions} />
+        <ActionList actions={session.actions} expanded={expanded} />
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -104,10 +126,10 @@ function OutcomeBadge({ outcome }: { outcome: SessionOutcome }) {
   );
 }
 
-function ActionList({ actions }: { actions: string[] }) {
-  // Show at most 3 actions inline; truncate the rest
-  const shown = actions.slice(0, 3);
-  const remaining = actions.length - shown.length;
+function ActionList({ actions, expanded }: { actions: string[]; expanded: boolean }) {
+  const PREVIEW = 3;
+  const shown = expanded ? actions : actions.slice(0, PREVIEW);
+  const remaining = actions.length - PREVIEW;
 
   return (
     <View style={styles.actionList}>
@@ -117,8 +139,11 @@ function ActionList({ actions }: { actions: string[] }) {
           <Text style={styles.actionText} numberOfLines={1}>{a}</Text>
         </View>
       ))}
-      {remaining > 0 && (
-        <Text style={styles.actionMore}>+{remaining} more</Text>
+      {!expanded && remaining > 0 && (
+        <Text style={styles.actionMore}>+{remaining} more — tap to expand</Text>
+      )}
+      {expanded && actions.length > PREVIEW && (
+        <Text style={styles.actionMore}>tap to collapse</Text>
       )}
     </View>
   );

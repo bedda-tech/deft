@@ -39,6 +39,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: Remove prepare script from executorch (not needed for CI)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'react-native-executorch/packages/react-native-executorch/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            delete pkg.scripts.prepare;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+          "
+
       - name: Install dependencies
         working-directory: deft
         run: npm install --ignore-scripts
