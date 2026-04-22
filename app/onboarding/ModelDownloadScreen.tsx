@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Animated,
 } from 'react-native';
+import { downloadModel } from '../../src/agent/modelManager';
 
 interface Props {
   onNext: () => void;
@@ -49,7 +50,7 @@ export function ModelDownloadScreen({ onNext }: Props) {
     setErrorMessage(null);
 
     try {
-      await downloadModel({
+      await downloadModel('E4B', {
         onProgress: (p) => setProgress(p),
         onComplete: () => {
           setStatus('complete');
@@ -162,55 +163,6 @@ function Spec({ label, value }: { label: string; value: string }) {
       <Text style={styles.specValue}>{value}</Text>
     </View>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Download helper
-// ---------------------------------------------------------------------------
-
-interface DownloadCallbacks {
-  onProgress: (progress: number) => void;
-  onComplete: () => void;
-  onError: (message: string) => void;
-}
-
-/**
- * Download the Gemma 4 E4B model via react-native-executorch.
- *
- * Falls back to a simulated download in environments where the native
- * module is not linked (web, simulators, unit tests).
- */
-async function downloadModel(callbacks: DownloadCallbacks): Promise<void> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const executorch = require('react-native-executorch');
-    const { GEMMA4_E4B_QUANTIZED, downloadModel: downloadFn } = executorch as {
-      GEMMA4_E4B_QUANTIZED: object;
-      downloadModel: (
-        model: object,
-        onProgress: (p: number) => void,
-      ) => Promise<void>;
-    };
-    await downloadFn(GEMMA4_E4B_QUANTIZED, callbacks.onProgress);
-    callbacks.onComplete();
-  } catch (err) {
-    // Native module not linked or model constant not available --
-    // simulate a download for UI testing.
-    if (__DEV__) {
-      await simulateDownload(callbacks);
-    } else {
-      callbacks.onError(err instanceof Error ? err.message : 'Download failed');
-    }
-  }
-}
-
-async function simulateDownload(callbacks: DownloadCallbacks): Promise<void> {
-  const STEPS = 40;
-  for (let i = 1; i <= STEPS; i++) {
-    await new Promise<void>((r) => setTimeout(r, 50));
-    callbacks.onProgress(i / STEPS);
-  }
-  callbacks.onComplete();
 }
 
 const styles = StyleSheet.create({

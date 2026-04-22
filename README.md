@@ -107,32 +107,41 @@ On first launch, the app will prompt you to download the Gemma 4 model (~2.5GB).
 
 ```
 deft/
+  App.tsx                          # Root: onboarding gate + tab navigation
   app/
-    (tabs)/
-      index.tsx              # Chat/command interface
-      history.tsx            # Past agent sessions
-      settings.tsx           # Configuration
+    chat/ChatScreen.tsx            # Chat UI with voice input and agent status
+    history/HistoryScreen.tsx      # Past agent sessions with expandable rows
+    settings/SettingsScreen.tsx    # Model selection, cloud config, loop settings
     onboarding/
-      permissions.tsx        # Accessibility service setup
-      model-download.tsx     # Download Gemma 4 model
-  components/
-    AgentChat.tsx            # Chat UI with agent
-    ActionOverlay.tsx        # Floating overlay showing agent actions
-    ScreenPreview.tsx        # Real-time screen state visualization
-  services/
-    agent.ts                 # Agent configuration and lifecycle
-  stores/
-    agentStore.ts            # Zustand store for agent state
+      WelcomeScreen.tsx
+      PermissionsScreen.tsx        # Accessibility service setup
+      OverlayPermissionScreen.tsx  # SYSTEM_ALERT_WINDOW permission
+      ModelDownloadScreen.tsx      # Download Gemma 4 with progress bar
+      ReadyScreen.tsx
+  src/
+    agent/
+      agentBridge.ts              # Drives AgentLoop, streams events to chatStore
+      llmBridge.ts                # Singleton for on-device generate functions
+    components/
+      AgentOverlay.tsx            # Floating overlay showing live agent actions
+      ScreenPreview.tsx           # Real-time accessibility tree visualisation
+    store/
+      agentStore.ts               # Running state (isRunning, currentStep)
+      chatStore.ts                # Current session messages
+      historyStore.ts             # Persisted sessions (AsyncStorage, max 100)
+      onboardingStore.ts          # One-time completion flag
+      settingsStore.ts            # User preferences with AsyncStorage persistence
 ```
 
 ## Tech Stack
 
-- **Expo Router** + React Native (New Architecture)
-- **Zustand** for state management
+- **Expo** + React Native (New Architecture) — plain App.tsx navigation, no Expo Router
+- **Lightweight pub/sub stores** — no Zustand, no Redux; simple `Set<listener>` pattern
 - **react-native-accessibility-controller** for screen reading and actions
 - **react-native-executorch** for on-device Gemma 4 inference
 - **react-native-device-agent** for the agent orchestration loop
-- **expo-speech** for voice input
+- **expo-speech-recognition** for voice input
+- **@react-native-async-storage/async-storage** for settings and history persistence
 
 ## Deft Ecosystem
 
@@ -167,8 +176,8 @@ You need an Android device or emulator (API 30+) with developer mode enabled. On
 **Guidelines**
 
 - TypeScript strict throughout -- no `any`, no type assertions without a comment
-- Zustand for all agent state; keep side effects in `services/agent.ts`
-- Expo Router for navigation -- add new screens under `app/`
+- Use pub/sub stores (`src/store/`) for all shared state; keep side effects in `src/agent/`
+- Add new tabs/screens under `app/` and wire them in `App.tsx`
 - Test onboarding changes on a real device; emulators skip some accessibility flows
 - Open an issue before starting large changes
 

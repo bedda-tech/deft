@@ -12,6 +12,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -32,8 +33,9 @@ import {
   isOnDeviceLLMReady,
   subscribeIsLLMReady,
 } from '../../src/agent/llmBridge';
+import { downloadAndInitModel } from '../../src/agent/modelManager';
 
-type LLMStatus = 'ready' | 'loading' | 'unavailable';
+type LLMStatus = 'ready' | 'loading' | 'unavailable' | 'downloading';
 
 export function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
@@ -41,6 +43,8 @@ export function SettingsScreen() {
   const [llmStatus, setLLMStatus] = useState<LLMStatus>(
     isOnDeviceLLMReady() ? 'ready' : 'unavailable',
   );
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const downloadProgressAnim = useRef(new Animated.Value(0)).current;
   const modelChangedRef = useRef(false);
 
   useEffect(() => {
@@ -58,10 +62,37 @@ export function SettingsScreen() {
       } else if (modelChangedRef.current) {
         setLLMStatus('loading');
       } else {
-        setLLMStatus('unavailable');
+        setLLMStatus((s) => s === 'downloading' ? s : 'unavailable');
       }
     });
   }, []);
+
+  useEffect(() => {
+    Animated.timing(downloadProgressAnim, {
+      toValue: downloadProgress,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [downloadProgress, downloadProgressAnim]);
+
+  const handleDownload = useCallback(() => {
+    setLLMStatus('downloading');
+    setDownloadProgress(0);
+    downloadAndInitModel(settings.model, {
+      onProgress: (p) => setDownloadProgress(p),
+      onComplete: () => {
+        setLLMStatus('ready');
+        setDownloadProgress(1);
+      },
+      onError: () => {
+        setLLMStatus('unavailable');
+        setDownloadProgress(0);
+      },
+    }).catch(() => {
+      setLLMStatus('unavailable');
+      setDownloadProgress(0);
+    });
+  }, [settings.model]);
 
   const update = useCallback(async (patch: Partial<Settings>) => {
     const next = { ...settings, ...patch };
@@ -108,6 +139,34 @@ export function SettingsScreen() {
           />
           <View style={styles.divider} />
           <LLMStatusRow status={llmStatus} />
+          {llmStatus === 'downloading' && (
+            <>
+              <View style={styles.progressTrack}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: downloadProgressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressLabel}>
+                {Math.round(downloadProgress * 100)}%
+              </Text>
+            </>
+          )}
+          {llmStatus === 'unavailable' && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.downloadButton} onPress={handleDownload} activeOpacity={0.8}>
+                <Text style={styles.downloadButtonText}>Download model</Text>
+              </TouchableOpacity>
+            </>
+          )}
           <View style={styles.divider} />
           <SettingDescription
             text={
@@ -202,9 +261,10 @@ function SectionHeader({ title }: { title: string }) {
 
 function LLMStatusRow({ status }: { status: LLMStatus }) {
   const config = {
-    ready:       { label: 'Model ready',   dot: '#4ADE80', text: '#4ADE80' },
-    loading:     { label: 'Loading model…', dot: '#FACC15', text: '#FACC15' },
-    unavailable: { label: 'Not downloaded', dot: '#555',    text: '#666'    },
+    ready:       { label: 'Model ready',     dot: '#4ADE80', text: '#4ADE80' },
+    loading:     { label: 'Loading model…',  dot: '#FACC15', text: '#FACC15' },
+    unavailable: { label: 'Not downloaded',  dot: '#555',    text: '#666'    },
+    downloading: { label: 'Downloading…',    dot: '#818cf8', text: '#818cf8' },
   }[status];
 
   return (
@@ -522,6 +582,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 44,
     textAlign: 'center',
+  },
+
+  // Model download button + progress
+  downloadButton: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  downloadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0a0a0a',
+  },
+  progressTrack: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    height: 4,
+    backgroundColor: '#222',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#818cf8',
+    borderRadius: 2,
+  },
+  progressLabel: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 6,
+    fontSize: 11,
+    color: '#818cf8',
+    textAlign: 'right',
   },
 
   // Reset button

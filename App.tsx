@@ -8,11 +8,8 @@ import { SettingsScreen } from './app/settings/SettingsScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
 import { loadSettings, subscribeSettings } from './src/store/settingsStore';
 import { AgentOverlay } from './src/components/AgentOverlay';
-import {
-  registerGenerateFn,
-  registerGenerateWithImageFn,
-  unregisterLLM,
-} from './src/agent/llmBridge';
+import { unregisterLLM } from './src/agent/llmBridge';
+import { initModel } from './src/agent/modelManager';
 
 type AppState = 'loading' | 'onboarding' | 'main';
 type MainTab = 'chat' | 'history' | 'settings';
@@ -90,47 +87,8 @@ export default function App() {
 // On-device LLM initialization
 // ---------------------------------------------------------------------------
 
-/**
- * Try to load the on-device Gemma model and register its generate functions
- * in the llmBridge singleton. No-ops (throws) if react-native-executorch is
- * not linked or the model has not been downloaded.
- */
-type ModelConfig = {
-  modelName: string;
-  capabilities: readonly string[];
-  modelSource: string;
-  tokenizerSource: string;
-  tokenizerConfigSource: string;
-  generationConfigSource: string;
-};
-
-type LLMInstance = {
-  generate: (messages: { role: string; content: string }[], tools?: unknown[]) => Promise<string>;
-  forward: (input: string, imagePaths?: string[]) => Promise<string>;
-};
-
 async function initOnDeviceLLM(model: 'E2B' | 'E4B'): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const executorch = require('react-native-executorch') as {
-    LLMModule: {
-      fromModelName: (config: ModelConfig) => Promise<LLMInstance>;
-    };
-    GEMMA4_E2B_QUANTIZED: ModelConfig;
-    GEMMA4_E4B_QUANTIZED: ModelConfig;
-  };
-
-  const config = model === 'E2B' ? executorch.GEMMA4_E2B_QUANTIZED : executorch.GEMMA4_E4B_QUANTIZED;
-  const llm = await executorch.LLMModule.fromModelName(config);
-
-  registerGenerateFn(async (prompt: string) => {
-    return llm.generate([{ role: 'user', content: prompt }]);
-  });
-
-  // Register the vision function using the lower-level `forward` API so the
-  // agent loop can pass screenshots alongside the prompt for grounded inference.
-  registerGenerateWithImageFn(async (prompt: string, imagePath: string) => {
-    return llm.forward(prompt, [imagePath]);
-  });
+  await initModel(model);
 }
 
 // ---------------------------------------------------------------------------
