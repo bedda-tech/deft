@@ -102,6 +102,7 @@ async function runRealAgentLoop(
       settleMs: number;
       useVision?: boolean;
       retryOnError?: number;
+      systemPromptSuffix?: string;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -131,6 +132,7 @@ async function runRealAgentLoop(
     settleMs: settings.settleMs,
     useVision: settings.useVision,
     retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
+    systemPromptSuffix: settings.customInstructions || undefined,
   });
 
   const actions: string[] = [];
