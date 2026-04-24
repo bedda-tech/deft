@@ -264,7 +264,7 @@ export function SettingsScreen() {
           />
           <View style={styles.divider} />
           <SettingDescription
-            text="Extra instructions appended to the agent's system prompt when using cloud fallback. Use this to give the agent specific guidance, restrictions, or context."
+            text="Extra instructions appended to the agent's prompt on every step — for both on-device and cloud inference. Use this to give the agent specific guidance, restrictions, or context."
           />
         </View>
 
