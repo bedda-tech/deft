@@ -11,14 +11,20 @@ export interface Settings {
   model: 'E2B' | 'E4B';
   /** Fall back to a cloud LLM when the local model is unavailable. */
   cloudFallback: boolean;
-  /** API key for the cloud provider (OpenAI or Anthropic). */
+  /** API key for the cloud provider. */
   cloudApiKey: string;
   /**
    * Cloud model identifier.
    * OpenAI example: 'gpt-4o'
    * Anthropic example: 'claude-sonnet-4-6'
+   * OpenRouter example: 'google/gemma-3-27b-it'
    */
   cloudModel: string;
+  /**
+   * Cloud provider selection.
+   * 'auto' detects Anthropic vs OpenAI by model name prefix.
+   */
+  cloudProvider: 'auto' | 'anthropic' | 'openai' | 'openrouter';
   /** Maximum number of agent loop steps before giving up. */
   maxSteps: number;
   /** Milliseconds to wait after each action before observing the result. */
@@ -32,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cloudFallback: false,
   cloudApiKey: '',
   cloudModel: 'claude-sonnet-4-6',
+  cloudProvider: 'auto',
   maxSteps: 20,
   settleMs: 500,
   useVision: false,

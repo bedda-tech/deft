@@ -109,7 +109,7 @@ async function runRealAgentLoop(
       apiKey: string;
       model: string;
       baseUrl?: string;
-      apiFormat?: 'openai' | 'anthropic';
+      apiFormat?: 'openai' | 'anthropic' | 'openrouter';
       system?: string;
     }) => unknown;
     GemmaProvider: new (options: {
@@ -201,7 +201,7 @@ function buildProvider(
       apiKey: string;
       model: string;
       baseUrl?: string;
-      apiFormat?: 'openai' | 'anthropic';
+      apiFormat?: 'openai' | 'anthropic' | 'openrouter';
       system?: string;
     }) => unknown;
     GemmaProvider: new (options: {
@@ -220,12 +220,29 @@ function buildProvider(
   const hasCloud = settings.cloudFallback && !!settings.cloudApiKey;
 
   const buildCloudProvider = () => {
-    const isAnthropic = settings.cloudModel.startsWith('claude');
+    const provider = settings.cloudProvider;
+    let baseUrl: string;
+    let apiFormat: 'openai' | 'anthropic' | 'openrouter';
+    if (provider === 'anthropic') {
+      baseUrl = 'https://api.anthropic.com/v1';
+      apiFormat = 'anthropic';
+    } else if (provider === 'openrouter') {
+      baseUrl = 'https://openrouter.ai/api/v1';
+      apiFormat = 'openrouter';
+    } else if (provider === 'openai') {
+      baseUrl = 'https://api.openai.com/v1';
+      apiFormat = 'openai';
+    } else {
+      // 'auto': detect by model name
+      const isAnthropic = settings.cloudModel.startsWith('claude');
+      baseUrl = isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1';
+      apiFormat = isAnthropic ? 'anthropic' : 'openai';
+    }
     return new deviceAgent.CloudProvider({
       apiKey: settings.cloudApiKey,
       model: settings.cloudModel,
-      baseUrl: isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1',
-      apiFormat: isAnthropic ? 'anthropic' : 'openai',
+      baseUrl,
+      apiFormat,
       system: AGENT_SYSTEM_PROMPT,
     });
   };

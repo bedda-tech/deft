@@ -188,10 +188,15 @@ export function SettingsScreen() {
           {settings.cloudFallback && (
             <>
               <View style={styles.divider} />
+              <CloudProviderRow
+                value={settings.cloudProvider}
+                onChange={(v) => update({ cloudProvider: v })}
+              />
+              <View style={styles.divider} />
               <TextRow
                 label="API Key"
                 value={settings.cloudApiKey}
-                placeholder="sk-… or anthropic key"
+                placeholder="API key"
                 secureTextEntry
                 onChangeText={(v) => update({ cloudApiKey: v })}
               />
@@ -199,7 +204,7 @@ export function SettingsScreen() {
               <TextRow
                 label="Model"
                 value={settings.cloudModel}
-                placeholder="claude-sonnet-4-6"
+                placeholder={CLOUD_MODEL_PLACEHOLDER[settings.cloudProvider]}
                 onChangeText={(v) => update({ cloudModel: v })}
               />
             </>
@@ -356,6 +361,48 @@ function TextRow({
         autoCorrect={false}
         returnKeyType="done"
       />
+    </View>
+  );
+}
+
+const CLOUD_MODEL_PLACEHOLDER: Record<Settings['cloudProvider'], string> = {
+  auto: 'claude-sonnet-4-6 or gpt-4o',
+  anthropic: 'claude-sonnet-4-6',
+  openai: 'gpt-4o',
+  openrouter: 'google/gemma-3-27b-it',
+};
+
+const CLOUD_PROVIDERS: Array<{ value: Settings['cloudProvider']; label: string }> = [
+  { value: 'auto',       label: 'Auto'       },
+  { value: 'anthropic',  label: 'Anthropic'  },
+  { value: 'openai',     label: 'OpenAI'     },
+  { value: 'openrouter', label: 'OpenRouter' },
+];
+
+function CloudProviderRow({
+  value,
+  onChange,
+}: {
+  value: Settings['cloudProvider'];
+  onChange: (v: Settings['cloudProvider']) => void;
+}) {
+  return (
+    <View style={styles.providerRow}>
+      <Text style={styles.rowLabel}>Provider</Text>
+      <View style={styles.providerControl}>
+        {CLOUD_PROVIDERS.map((p) => (
+          <TouchableOpacity
+            key={p.value}
+            style={[styles.providerSegment, value === p.value && styles.providerSegmentActive]}
+            onPress={() => onChange(p.value)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.providerSegmentText, value === p.value && styles.providerSegmentTextActive]}>
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
@@ -618,6 +665,39 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#818cf8',
     textAlign: 'right',
+  },
+
+  // Cloud provider selector
+  providerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  providerControl: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    overflow: 'hidden',
+  },
+  providerSegment: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  providerSegmentActive: {
+    backgroundColor: '#fff',
+  },
+  providerSegmentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  providerSegmentTextActive: {
+    color: '#0a0a0a',
   },
 
   // Reset button
