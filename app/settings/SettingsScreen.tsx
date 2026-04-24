@@ -242,8 +242,29 @@ export function SettingsScreen() {
             onChange={(v) => update({ useVision: v })}
           />
           <View style={styles.divider} />
+          <StepperRow
+            label="Retry on error"
+            value={settings.retryOnError}
+            min={0}
+            max={3}
+            onChange={(v) => update({ retryOnError: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding — requires the model to support image input."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding — requires the model to support image input. Retry on error retries failed LLM calls with exponential backoff."
+          />
+        </View>
+
+        {/* ── Custom instructions ── */}
+        <SectionHeader title="Custom Instructions" />
+        <View style={styles.card}>
+          <CustomInstructionsInput
+            value={settings.customInstructions}
+            onChangeText={(v) => update({ customInstructions: v })}
+          />
+          <View style={styles.divider} />
+          <SettingDescription
+            text="Extra instructions appended to the agent's system prompt when using cloud fallback. Use this to give the agent specific guidance, restrictions, or context."
           />
         </View>
 
@@ -404,6 +425,30 @@ function CloudProviderRow({
         ))}
       </View>
     </View>
+  );
+}
+
+function CustomInstructionsInput({
+  value,
+  onChangeText,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+}) {
+  return (
+    <TextInput
+      style={styles.customInstructionsInput}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder="e.g. Never open social media apps. Always confirm before sending messages."
+      placeholderTextColor="#3a3a3a"
+      multiline
+      numberOfLines={4}
+      autoCapitalize="sentences"
+      autoCorrect
+      returnKeyType="default"
+      textAlignVertical="top"
+    />
   );
 }
 
@@ -698,6 +743,22 @@ const styles = StyleSheet.create({
   },
   providerSegmentTextActive: {
     color: '#0a0a0a',
+  },
+
+  // Custom instructions
+  customInstructionsInput: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    minHeight: 90,
+    fontSize: 13,
+    color: '#e5e5e5',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    lineHeight: 20,
   },
 
   // Reset button

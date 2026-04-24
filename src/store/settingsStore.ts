@@ -31,6 +31,10 @@ export interface Settings {
   settleMs: number;
   /** Enable multimodal vision: take a screenshot at each step and pass it to the LLM. */
   useVision: boolean;
+  /** Number of times to retry a failed LLM call before giving up (0 = no retries). */
+  retryOnError: number;
+  /** Extra instructions appended to the agent system prompt. */
+  customInstructions: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +46,8 @@ export const DEFAULT_SETTINGS: Settings = {
   maxSteps: 20,
   settleMs: 500,
   useVision: false,
+  retryOnError: 0,
+  customInstructions: '',
 };
 
 const SETTINGS_KEY = '@deft/settings';

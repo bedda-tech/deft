@@ -101,6 +101,7 @@ async function runRealAgentLoop(
       maxSteps: number;
       settleMs: number;
       useVision?: boolean;
+      retryOnError?: number;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -129,6 +130,7 @@ async function runRealAgentLoop(
     maxSteps: settings.maxSteps,
     settleMs: settings.settleMs,
     useVision: settings.useVision,
+    retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
   });
 
   const actions: string[] = [];
@@ -191,6 +193,11 @@ Guidelines:
 - Never perform destructive actions (deleting accounts, purchasing items, sending messages) \
 unless explicitly confirmed by the user in the task description.`;
 
+function buildSystemPrompt(customInstructions: string): string {
+  if (!customInstructions.trim()) return AGENT_SYSTEM_PROMPT;
+  return `${AGENT_SYSTEM_PROMPT}\n\nAdditional instructions:\n${customInstructions.trim()}`;
+}
+
 // ---------------------------------------------------------------------------
 // Provider construction
 // ---------------------------------------------------------------------------
@@ -243,7 +250,7 @@ function buildProvider(
       model: settings.cloudModel,
       baseUrl,
       apiFormat,
-      system: AGENT_SYSTEM_PROMPT,
+      system: buildSystemPrompt(settings.customInstructions),
     });
   };
 
