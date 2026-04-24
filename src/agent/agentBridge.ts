@@ -166,6 +166,9 @@ async function runRealAgentLoop(
     } else if (event.type === 'complete') {
       finalSummary = event.result;
       outcome = 'complete';
+    } else if (event.type === 'failed') {
+      finalSummary = `Could not complete: ${event.reason}`;
+      outcome = 'error';
     } else if (event.type === 'error') {
       finalSummary = `Error: ${event.error.message}`;
       outcome = 'error';
@@ -307,6 +310,8 @@ Guidelines:
 - After each action wait for the screen to update before continuing.
 - Call task_complete when the task is fully done with a concise 1–2 sentence summary.
 - If a step fails, try an alternative approach before giving up.
+- Call task_failed (with a reason) if the task is impossible or blocked after reasonable attempts. \
+Prefer this over running until the step limit.
 - Never perform destructive actions (deleting accounts, purchasing items, sending messages) \
 unless explicitly confirmed by the user in the task description.`;
 
@@ -410,6 +415,7 @@ type AgentEvent =
   | { type: 'action'; tool: string; args: Record<string, unknown> }
   | { type: 'observation'; screenState: string; step: number }
   | { type: 'complete'; result: string }
+  | { type: 'failed'; reason: string }
   | { type: 'error'; error: Error }
   | { type: 'max_steps_reached' };
 
