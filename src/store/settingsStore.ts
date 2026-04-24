@@ -35,6 +35,11 @@ export interface Settings {
   retryOnError: number;
   /** Extra instructions appended to the agent system prompt. */
   customInstructions: string;
+  /**
+   * When true, a complex task is first decomposed into subtasks by the LLM,
+   * then each subtask is executed sequentially by AgentLoop (TaskPlanner mode).
+   */
+  planMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -48,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   useVision: false,
   retryOnError: 0,
   customInstructions: '',
+  planMode: false,
 };
 
 const SETTINGS_KEY = '@deft/settings';

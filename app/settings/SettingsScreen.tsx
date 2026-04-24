@@ -250,8 +250,14 @@ export function SettingsScreen() {
             onChange={(v) => update({ retryOnError: v })}
           />
           <View style={styles.divider} />
+          <ToggleRow
+            label="Plan mode (decompose into subtasks)"
+            value={settings.planMode}
+            onChange={(v) => update({ planMode: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding — requires the model to support image input. Retry on error retries failed LLM calls with exponential backoff."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution."
           />
         </View>
 

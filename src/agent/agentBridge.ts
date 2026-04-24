@@ -75,9 +75,12 @@ interface LoopResult {
 async function runAgentLoop(command: string, thinkingMsgId: string): Promise<LoopResult> {
   const settings = getSettings();
 
-  // Try the real AgentLoop from react-native-device-agent first.
+  // Try the real AgentLoop (or TaskPlanner in plan mode) first.
   // Falls back to the stub if the library or native module isn't available.
   try {
+    if (settings.planMode) {
+      return await runRealPlannerLoop(command, thinkingMsgId, settings);
+    }
     return await runRealAgentLoop(command, thinkingMsgId, settings);
   } catch {
     return runStubAgentLoop(command, thinkingMsgId, settings.maxSteps);
@@ -170,6 +173,118 @@ async function runRealAgentLoop(
     } else if (event.type === 'max_steps_reached') {
       finalSummary = `Reached the ${settings.maxSteps}-step limit.`;
       outcome = 'complete';
+    }
+  }
+
+  const summary = finalSummary ?? 'Done.';
+  updateMessage(thinkingMsgId, { text: summary, pending: false });
+  return { actions, outcome, summary };
+}
+
+// ---------------------------------------------------------------------------
+// Real planner loop (react-native-device-agent TaskPlanner)
+// ---------------------------------------------------------------------------
+
+async function runRealPlannerLoop(
+  command: string,
+  thinkingMsgId: string,
+  settings: ReturnType<typeof getSettings>,
+): Promise<LoopResult> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const deviceAgent = require('react-native-device-agent') as {
+    TaskPlanner: new (options: {
+      provider: unknown;
+      maxSteps: number;
+      settleMs: number;
+      useVision?: boolean;
+      retryOnError?: number;
+      systemPromptSuffix?: string;
+      maxSubTasks?: number;
+    }) => {
+      run: (task: string) => AsyncGenerator<PlannerEvent>;
+    };
+    CloudProvider: new (options: {
+      apiKey: string;
+      model: string;
+      baseUrl?: string;
+      apiFormat?: 'openai' | 'anthropic' | 'openrouter';
+      system?: string;
+    }) => unknown;
+    GemmaProvider: new (options: {
+      generateFn?: (prompt: string) => Promise<string>;
+      generateWithImageFn?: (prompt: string, imagePath: string) => Promise<string>;
+    }) => unknown;
+    FallbackProvider: new (options: {
+      onDevice: unknown;
+      cloud: unknown;
+      debug?: boolean;
+    }) => unknown;
+  };
+
+  const provider = buildProvider(deviceAgent, settings);
+  const planner = new deviceAgent.TaskPlanner({
+    provider,
+    maxSteps: settings.maxSteps,
+    settleMs: settings.settleMs,
+    useVision: settings.useVision,
+    retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
+    systemPromptSuffix: settings.customInstructions || undefined,
+  });
+
+  const actions: string[] = [];
+  let finalSummary: string | null = null;
+  let outcome: SessionOutcome = 'complete';
+  let totalSubtasks = 0;
+
+  for await (const event of planner.run(command)) {
+    if (_stopped) {
+      finalSummary = 'Stopped.';
+      outcome = 'stopped';
+      break;
+    }
+
+    if (event.type === 'plan') {
+      totalSubtasks = event.subtasks.length;
+      const planText = event.subtasks
+        .map((s) => `${s.index + 1}. ${s.description}`)
+        .join('\n');
+      updateMessage(thinkingMsgId, { text: `Plan:\n${planText}`, pending: true });
+    } else if (event.type === 'subtask_start') {
+      addMessage(
+        'agent', 'screen',
+        `Step ${event.subtask.index + 1}/${totalSubtasks}: ${event.subtask.description}`,
+      );
+    } else if (event.type === 'agent_event') {
+      const inner = event.event;
+      if (inner.type === 'action') {
+        const text = formatAction(inner.tool, inner.args);
+        addMessage('agent', 'action', text);
+        actions.push(text);
+      } else if (inner.type === 'observation') {
+        agentStepped(inner.step, inner.screenState);
+      } else if (inner.type === 'thinking' && inner.content) {
+        const preview = inner.content.length > 80
+          ? inner.content.slice(0, 77) + '…'
+          : inner.content;
+        updateMessage(thinkingMsgId, { text: preview, pending: true });
+      }
+    } else if (event.type === 'subtask_complete') {
+      addMessage(
+        'agent', 'action',
+        `Step ${event.subtask.index + 1} done — ${event.result}`,
+      );
+    } else if (event.type === 'subtask_error') {
+      addMessage(
+        'agent', 'action',
+        `Step ${event.subtask.index + 1} failed: ${event.error.message}`,
+      );
+    } else if (event.type === 'complete') {
+      finalSummary = event.result;
+      outcome = 'complete';
+    } else if (event.type === 'error') {
+      finalSummary = `Error: ${event.error.message}`;
+      outcome = 'error';
+      break;
     }
   }
 
@@ -287,7 +402,7 @@ function buildProvider(
 }
 
 // ---------------------------------------------------------------------------
-// Event type shapes (minimal, matches device-agent AgentEvent)
+// Event type shapes (minimal, matches device-agent types)
 // ---------------------------------------------------------------------------
 
 type AgentEvent =
@@ -297,6 +412,17 @@ type AgentEvent =
   | { type: 'complete'; result: string }
   | { type: 'error'; error: Error }
   | { type: 'max_steps_reached' };
+
+interface SubTask { index: number; description: string }
+
+type PlannerEvent =
+  | { type: 'plan'; subtasks: SubTask[] }
+  | { type: 'subtask_start'; subtask: SubTask }
+  | { type: 'subtask_complete'; subtask: SubTask; result: string }
+  | { type: 'subtask_error'; subtask: SubTask; error: Error }
+  | { type: 'agent_event'; subtask: SubTask; event: AgentEvent }
+  | { type: 'complete'; result: string }
+  | { type: 'error'; error: Error };
 
 function formatAction(tool: string, args: Record<string, unknown>): string {
   const argStr = Object.entries(args)
