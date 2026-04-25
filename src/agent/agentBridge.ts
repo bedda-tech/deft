@@ -11,6 +11,7 @@
  * react-native-accessibility-controller are not linked (simulator, tests).
  */
 
+import { Vibration } from 'react-native';
 import {
   addMessage,
   updateMessage,
@@ -151,6 +152,7 @@ async function runRealAgentLoop(
     }
 
     if (event.type === 'action') {
+      Vibration.vibrate(50);
       const text = formatAction(event.tool, event.args);
       addMessage('agent', 'action', text);
       actions.push(text);
@@ -176,6 +178,9 @@ async function runRealAgentLoop(
     } else if (event.type === 'max_steps_reached') {
       finalSummary = `Reached the ${settings.maxSteps}-step limit.`;
       outcome = 'complete';
+    } else if (event.type === 'timeout') {
+      finalSummary = 'Timed out.';
+      outcome = 'error';
     }
   }
 
@@ -260,6 +265,7 @@ async function runRealPlannerLoop(
     } else if (event.type === 'agent_event') {
       const inner = event.event;
       if (inner.type === 'action') {
+        Vibration.vibrate(50);
         const text = formatAction(inner.tool, inner.args);
         addMessage('agent', 'action', text);
         actions.push(text);
@@ -417,7 +423,8 @@ type AgentEvent =
   | { type: 'complete'; result: string }
   | { type: 'failed'; reason: string }
   | { type: 'error'; error: Error }
-  | { type: 'max_steps_reached' };
+  | { type: 'max_steps_reached' }
+  | { type: 'timeout' };
 
 interface SubTask { index: number; description: string }
 
