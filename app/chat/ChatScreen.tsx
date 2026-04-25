@@ -20,6 +20,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
   Animated,
@@ -246,6 +247,15 @@ function SuggestionChip({ text, onPress }: { text: string; onPress: (text: strin
 // Message bubble
 // ---------------------------------------------------------------------------
 
+function copyMessageText(text: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Clipboard = require('expo-clipboard') as typeof import('expo-clipboard');
+    void Clipboard.setStringAsync(text);
+    ToastAndroid.show('Copied', ToastAndroid.SHORT);
+  } catch { /* expo-clipboard not linked */ }
+}
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const isAction = message.kind === 'action';
@@ -263,28 +273,44 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
   if (isAction) {
     return (
-      <View style={styles.actionRow}>
+      <TouchableOpacity
+        style={styles.actionRow}
+        onLongPress={() => copyMessageText(message.text)}
+        activeOpacity={1}
+        delayLongPress={400}
+      >
         <View style={styles.actionDot} />
         <Text style={styles.actionText} numberOfLines={2}>{message.text}</Text>
         {message.pending && <PendingDots />}
+      </TouchableOpacity>
+    );
+  }
+
+  if (isUser) {
+    return (
+      <View style={[styles.bubbleRow, styles.bubbleRowUser]}>
+        <View style={[styles.bubble, styles.bubbleUser]}>
+          <Text style={[styles.bubbleText, styles.bubbleTextUser]}>{message.text}</Text>
+          {message.pending && <PendingDots />}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAgent]}>
-      <View
-        style={[
-          styles.bubble,
-          isUser ? styles.bubbleUser : styles.bubbleAgent,
-        ]}
-      >
-        <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextAgent]}>
+    <TouchableOpacity
+      style={[styles.bubbleRow, styles.bubbleRowAgent]}
+      onLongPress={() => copyMessageText(message.text)}
+      activeOpacity={1}
+      delayLongPress={400}
+    >
+      <View style={[styles.bubble, styles.bubbleAgent]}>
+        <Text style={[styles.bubbleText, styles.bubbleTextAgent]}>
           {message.text}
         </Text>
         {message.pending && <PendingDots />}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

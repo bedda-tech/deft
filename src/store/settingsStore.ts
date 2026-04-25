@@ -40,6 +40,12 @@ export interface Settings {
    * then each subtask is executed sequentially by AgentLoop (TaskPlanner mode).
    */
   planMode: boolean;
+  /**
+   * Maximum wall-clock seconds the agent may run before timing out.
+   * 0 means no timeout. Stored as seconds for display convenience;
+   * multiply by 1000 before passing to AgentLoop's `timeoutMs` option.
+   */
+  timeoutSecs: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -54,6 +60,7 @@ export const DEFAULT_SETTINGS: Settings = {
   retryOnError: 0,
   customInstructions: '',
   planMode: false,
+  timeoutSecs: 0,
 };
 
 const SETTINGS_KEY = '@deft/settings';

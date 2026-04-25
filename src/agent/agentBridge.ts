@@ -137,6 +137,7 @@ async function runRealAgentLoop(
     useVision: settings.useVision,
     retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
     systemPromptSuffix: settings.customInstructions || undefined,
+    timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
   });
 
   const actions: string[] = [];
@@ -237,6 +238,7 @@ async function runRealPlannerLoop(
     useVision: settings.useVision,
     retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
     systemPromptSuffix: settings.customInstructions || undefined,
+    timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
   });
 
   const actions: string[] = [];

@@ -256,8 +256,18 @@ export function SettingsScreen() {
             onChange={(v) => update({ planMode: v })}
           />
           <View style={styles.divider} />
+          <StepperRow
+            label="Timeout"
+            value={settings.timeoutSecs}
+            min={0}
+            max={300}
+            step={30}
+            unit="s"
+            onChange={(v) => update({ timeoutSecs: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled)."
           />
         </View>
 
