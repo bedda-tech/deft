@@ -275,8 +275,18 @@ export function SettingsScreen() {
             onChange={(v) => update({ maxHistoryItems: v })}
           />
           <View style={styles.divider} />
+          <StepperRow
+            label="Screen length"
+            value={settings.maxScreenLength}
+            min={0}
+            max={20000}
+            step={2000}
+            unit=" ch"
+            onChange={(v) => update({ maxScreenLength: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled). History limit caps how many past actions are included in each LLM prompt to protect the context window on long tasks (0 = no limit)."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled). History limit caps how many past actions are included in each LLM prompt (0 = no limit). Screen length truncates the accessibility tree in each prompt to protect the context window (0 = no truncation)."
           />
         </View>
 

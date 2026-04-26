@@ -109,6 +109,7 @@ async function runRealAgentLoop(
       systemPromptSuffix?: string;
       timeoutMs?: number;
       maxHistoryItems?: number;
+      maxScreenLength?: number;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -141,6 +142,7 @@ async function runRealAgentLoop(
     systemPromptSuffix: settings.customInstructions || undefined,
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
     maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
+    maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
   });
 
   const actions: string[] = [];
@@ -213,6 +215,7 @@ async function runRealPlannerLoop(
       systemPromptSuffix?: string;
       timeoutMs?: number;
       maxHistoryItems?: number;
+      maxScreenLength?: number;
       maxSubTasks?: number;
     }) => {
       run: (task: string) => AsyncGenerator<PlannerEvent>;
@@ -245,6 +248,7 @@ async function runRealPlannerLoop(
     systemPromptSuffix: settings.customInstructions || undefined,
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
     maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
+    maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
   });
 
   const actions: string[] = [];

@@ -52,6 +52,13 @@ export interface Settings {
    * the LLM context window on long tasks. 0 = no limit.
    */
   maxHistoryItems: number;
+  /**
+   * Maximum character length of the serialized accessibility tree included in
+   * each prompt. When the tree exceeds this limit, only interactive nodes are
+   * kept. 0 disables truncation (not recommended for complex screens).
+   * Corresponds to AgentOptions.maxScreenLength (default: 6000).
+   */
+  maxScreenLength: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -68,6 +75,7 @@ export const DEFAULT_SETTINGS: Settings = {
   planMode: false,
   timeoutSecs: 0,
   maxHistoryItems: 0,
+  maxScreenLength: 6000,
 };
 
 const SETTINGS_KEY = '@deft/settings';
