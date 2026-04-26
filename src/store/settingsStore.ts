@@ -46,6 +46,12 @@ export interface Settings {
    * multiply by 1000 before passing to AgentLoop's `timeoutMs` option.
    */
   timeoutSecs: number;
+  /**
+   * Maximum number of action + observation history entries included in each
+   * prompt. Older entries are dropped when the limit is exceeded to protect
+   * the LLM context window on long tasks. 0 = no limit.
+   */
+  maxHistoryItems: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -61,6 +67,7 @@ export const DEFAULT_SETTINGS: Settings = {
   customInstructions: '',
   planMode: false,
   timeoutSecs: 0,
+  maxHistoryItems: 0,
 };
 
 const SETTINGS_KEY = '@deft/settings';

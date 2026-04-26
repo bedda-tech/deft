@@ -266,8 +266,17 @@ export function SettingsScreen() {
             onChange={(v) => update({ timeoutSecs: v })}
           />
           <View style={styles.divider} />
+          <StepperRow
+            label="History limit"
+            value={settings.maxHistoryItems}
+            min={0}
+            max={50}
+            step={5}
+            onChange={(v) => update({ maxHistoryItems: v })}
+          />
+          <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled)."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled). History limit caps how many past actions are included in each LLM prompt to protect the context window on long tasks (0 = no limit)."
           />
         </View>
 

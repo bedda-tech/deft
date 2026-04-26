@@ -107,6 +107,8 @@ async function runRealAgentLoop(
       useVision?: boolean;
       retryOnError?: number;
       systemPromptSuffix?: string;
+      timeoutMs?: number;
+      maxHistoryItems?: number;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -138,6 +140,7 @@ async function runRealAgentLoop(
     retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
     systemPromptSuffix: settings.customInstructions || undefined,
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
+    maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
   });
 
   const actions: string[] = [];
@@ -208,6 +211,8 @@ async function runRealPlannerLoop(
       useVision?: boolean;
       retryOnError?: number;
       systemPromptSuffix?: string;
+      timeoutMs?: number;
+      maxHistoryItems?: number;
       maxSubTasks?: number;
     }) => {
       run: (task: string) => AsyncGenerator<PlannerEvent>;
@@ -239,6 +244,7 @@ async function runRealPlannerLoop(
     retryOnError: settings.retryOnError > 0 ? settings.retryOnError : undefined,
     systemPromptSuffix: settings.customInstructions || undefined,
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
+    maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
   });
 
   const actions: string[] = [];
