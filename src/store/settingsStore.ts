@@ -73,6 +73,8 @@ export interface Settings {
    * Corresponds to AgentOptions.maxScreenLength (default: 6000).
    */
   maxScreenLength: number;
+  /** Speak agent responses aloud via text-to-speech when true. */
+  ttsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -92,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
   timeoutSecs: 0,
   maxHistoryItems: 0,
   maxScreenLength: 6000,
+  ttsEnabled: false,
 };
 
 const SETTINGS_KEY = '@deft/settings';

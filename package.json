@@ -14,6 +14,7 @@
     "expo": "~54.0.33",
     "expo-av": "~15.0.2",
     "expo-clipboard": "~7.0.1",
+    "expo-speech": "~13.1.0",
     "expo-speech-recognition": "~0.2.7",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",

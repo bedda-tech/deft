@@ -33,6 +33,7 @@ import {
 } from '../../src/store/chatStore';
 import { processCommand, stopAgent } from '../../src/agent/agentBridge';
 import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
+import { getSettings, subscribeSettings } from '../../src/store/settingsStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 
 // ---------------------------------------------------------------------------
@@ -56,10 +57,36 @@ export function ChatScreen() {
     currentScreenState: null,
   });
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const ttsEnabledRef = useRef(getSettings().ttsEnabled);
+  // Maps message id → pending state from the previous update, used to detect transitions.
+  const prevPendingRef = useRef<Map<string, boolean>>(new Map());
 
-  // Subscribe to the shared message store
+  // Track the latest ttsEnabled setting without re-subscribing to messages.
   useEffect(() => {
-    const unsub = subscribe(setMessages);
+    return subscribeSettings((s) => { ttsEnabledRef.current = s.ttsEnabled; });
+  }, []);
+
+  // Subscribe to the shared message store; trigger TTS when an agent text message resolves.
+  useEffect(() => {
+    const unsub = subscribe((msgs) => {
+      setMessages(msgs);
+
+      if (ttsEnabledRef.current) {
+        for (const msg of msgs) {
+          if (msg.role === 'agent' && msg.kind === 'text' && !msg.pending) {
+            const prevPending = prevPendingRef.current.get(msg.id);
+            // Speak when: newly added as resolved, or just transitioned from pending→resolved.
+            if (prevPending === undefined || prevPending === true) {
+              speakAgentResponse(msg.text);
+            }
+          }
+        }
+      }
+
+      const next = new Map<string, boolean>();
+      for (const msg of msgs) next.set(msg.id, !!msg.pending);
+      prevPendingRef.current = next;
+    });
     return unsub;
   }, []);
 
@@ -82,6 +109,7 @@ export function ChatScreen() {
     const trimmed = text.trim();
     if (!trimmed) return;
     setInputText('');
+    stopSpeech();
     addMessage('user', 'text', trimmed);
     await processCommand(trimmed);
   }, []);
@@ -454,6 +482,33 @@ function stopSpeechRecognition(): void {
     const { ExpoSpeechRecognitionModule } = require('expo-speech-recognition') as
       typeof import('expo-speech-recognition');
     ExpoSpeechRecognitionModule.stop();
+  } catch { /* not linked */ }
+}
+
+interface SpeechModule {
+  speak(text: string, options?: { language?: string }): void;
+  stop(): void;
+}
+
+/**
+ * Speak the given text using expo-speech TTS. Stops any in-progress speech
+ * before starting. Falls back gracefully when the module is not linked.
+ */
+function speakAgentResponse(text: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Speech = require('expo-speech') as SpeechModule;
+    Speech.stop();
+    Speech.speak(text, { language: 'en-US' });
+  } catch { /* expo-speech not linked */ }
+}
+
+/** Stop any ongoing TTS utterance. */
+function stopSpeech(): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Speech = require('expo-speech') as SpeechModule;
+    Speech.stop();
   } catch { /* not linked */ }
 }
 

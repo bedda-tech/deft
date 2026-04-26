@@ -320,6 +320,20 @@ export function SettingsScreen() {
           />
         </View>
 
+        {/* ── Voice output ── */}
+        <SectionHeader title="Voice Output" />
+        <View style={styles.card}>
+          <ToggleRow
+            label="Speak agent responses (TTS)"
+            value={settings.ttsEnabled}
+            onChange={(v) => update({ ttsEnabled: v })}
+          />
+          <View style={styles.divider} />
+          <SettingDescription
+            text="When enabled, Deft reads agent completion messages aloud using text-to-speech. Pairs naturally with voice input for a fully hands-free experience."
+          />
+        </View>
+
         {/* ── Reset ── */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset} activeOpacity={0.7}>
           <Text style={styles.resetButtonText}>Reset to Defaults</Text>
