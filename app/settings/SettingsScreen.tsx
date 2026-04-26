@@ -255,6 +255,23 @@ export function SettingsScreen() {
             value={settings.planMode}
             onChange={(v) => update({ planMode: v })}
           />
+          {settings.planMode && (
+            <>
+              <View style={styles.divider} />
+              <StepperRow
+                label="Max subtasks"
+                value={settings.maxSubTasks}
+                min={1}
+                max={20}
+                onChange={(v) => update({ maxSubTasks: v })}
+              />
+            </>
+          )}
+          <View style={styles.divider} />
+          <ToolPresetRow
+            value={settings.toolPreset}
+            onChange={(v) => update({ toolPreset: v })}
+          />
           <View style={styles.divider} />
           <StepperRow
             label="Timeout"
@@ -286,7 +303,7 @@ export function SettingsScreen() {
           />
           <View style={styles.divider} />
           <SettingDescription
-            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks before execution. Timeout stops the agent after N seconds (0 = disabled). History limit caps how many past actions are included in each LLM prompt (0 = no limit). Screen length truncates the accessibility tree in each prompt to protect the context window (0 = no truncation)."
+            text="Max steps caps how many actions the agent can take per task. Settle delay is the wait time after each action. Vision mode attaches a screenshot to each LLM call for richer UI understanding. Retry on error retries failed LLM calls with exponential backoff. Plan mode uses the LLM to decompose complex tasks into subtasks; Max subtasks limits how many subtasks can be planned. Tool preset restricts which tools the LLM can use — Full allows everything; Navigation, Text Input, Read Only, and In-App are progressively more restricted. Timeout stops the agent after N seconds (0 = disabled). History limit caps how many past actions are included in each LLM prompt (0 = no limit). Screen length truncates the accessibility tree in each prompt to protect the context window (0 = no truncation)."
           />
         </View>
 
@@ -447,6 +464,42 @@ function CloudProviderRow({
       <Text style={styles.rowLabel}>Provider</Text>
       <View style={styles.providerControl}>
         {CLOUD_PROVIDERS.map((p) => (
+          <TouchableOpacity
+            key={p.value}
+            style={[styles.providerSegment, value === p.value && styles.providerSegmentActive]}
+            onPress={() => onChange(p.value)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.providerSegmentText, value === p.value && styles.providerSegmentTextActive]}>
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const TOOL_PRESETS: Array<{ value: Settings['toolPreset']; label: string }> = [
+  { value: 'full',       label: 'Full'    },
+  { value: 'navigation', label: 'Nav'     },
+  { value: 'text_input', label: 'Text'    },
+  { value: 'read_only',  label: 'Read'    },
+  { value: 'in_app',     label: 'In-App'  },
+];
+
+function ToolPresetRow({
+  value,
+  onChange,
+}: {
+  value: Settings['toolPreset'];
+  onChange: (v: Settings['toolPreset']) => void;
+}) {
+  return (
+    <View style={styles.providerRow}>
+      <Text style={styles.rowLabel}>Tool preset</Text>
+      <View style={styles.providerControl}>
+        {TOOL_PRESETS.map((p) => (
           <TouchableOpacity
             key={p.value}
             style={[styles.providerSegment, value === p.value && styles.providerSegmentActive]}

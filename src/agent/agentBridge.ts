@@ -110,6 +110,7 @@ async function runRealAgentLoop(
       timeoutMs?: number;
       maxHistoryItems?: number;
       maxScreenLength?: number;
+      toolFilter?: string[];
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -143,6 +144,7 @@ async function runRealAgentLoop(
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
     maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
     maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
+    toolFilter: resolveToolFilter(settings.toolPreset),
   });
 
   const actions: string[] = [];
@@ -217,6 +219,7 @@ async function runRealPlannerLoop(
       maxHistoryItems?: number;
       maxScreenLength?: number;
       maxSubTasks?: number;
+      toolFilter?: string[];
     }) => {
       run: (task: string) => AsyncGenerator<PlannerEvent>;
     };
@@ -249,6 +252,8 @@ async function runRealPlannerLoop(
     timeoutMs: settings.timeoutSecs > 0 ? settings.timeoutSecs * 1000 : undefined,
     maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
     maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
+    maxSubTasks: settings.maxSubTasks > 0 ? settings.maxSubTasks : undefined,
+    toolFilter: resolveToolFilter(settings.toolPreset),
   });
 
   const actions: string[] = [];
@@ -336,6 +341,25 @@ unless explicitly confirmed by the user in the task description.`;
 function buildSystemPrompt(customInstructions: string): string {
   if (!customInstructions.trim()) return AGENT_SYSTEM_PROMPT;
   return `${AGENT_SYSTEM_PROMPT}\n\nAdditional instructions:\n${customInstructions.trim()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Tool preset resolution
+// ---------------------------------------------------------------------------
+
+function resolveToolFilter(preset: string): string[] | undefined {
+  switch (preset) {
+    case 'navigation':
+      return ['tap', 'long_press', 'swipe', 'scroll', 'global_action', 'open_app', 'find_node', 'wait', 'read_screen'];
+    case 'text_input':
+      return ['tap', 'type_text', 'find_node', 'scroll', 'read_screen'];
+    case 'read_only':
+      return ['read_screen', 'screenshot'];
+    case 'in_app':
+      return ['tap', 'long_press', 'type_text', 'swipe', 'scroll', 'find_node', 'wait', 'read_screen', 'screenshot'];
+    default:
+      return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------

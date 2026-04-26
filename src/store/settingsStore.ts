@@ -9,6 +9,15 @@
 export interface Settings {
   /** Which Gemma variant to use for on-device inference. */
   model: 'E2B' | 'E4B';
+  /**
+   * Restricts which tools are offered to the LLM.
+   * 'full'       → all PHONE_TOOLS (default)
+   * 'navigation' → tap/swipe/scroll/global actions only; no text input
+   * 'text_input' → form-filling: tap + type_text + scroll
+   * 'read_only'  → read_screen + screenshot only; no actions
+   * 'in_app'     → full interaction within the current app; no open_app / global_action
+   */
+  toolPreset: 'full' | 'navigation' | 'text_input' | 'read_only' | 'in_app';
   /** Fall back to a cloud LLM when the local model is unavailable. */
   cloudFallback: boolean;
   /** API key for the cloud provider. */
@@ -41,6 +50,11 @@ export interface Settings {
    */
   planMode: boolean;
   /**
+   * Maximum number of subtasks the TaskPlanner may generate for a single command.
+   * Only relevant when planMode is true. Default: 5.
+   */
+  maxSubTasks: number;
+  /**
    * Maximum wall-clock seconds the agent may run before timing out.
    * 0 means no timeout. Stored as seconds for display convenience;
    * multiply by 1000 before passing to AgentLoop's `timeoutMs` option.
@@ -63,6 +77,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   model: 'E4B',
+  toolPreset: 'full',
   cloudFallback: false,
   cloudApiKey: '',
   cloudModel: 'claude-sonnet-4-6',
@@ -73,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   retryOnError: 0,
   customInstructions: '',
   planMode: false,
+  maxSubTasks: 5,
   timeoutSecs: 0,
   maxHistoryItems: 0,
   maxScreenLength: 6000,
