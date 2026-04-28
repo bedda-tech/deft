@@ -26,12 +26,17 @@ import { getGenerateFn, getGenerateWithImageFn } from './llmBridge';
 // ---------------------------------------------------------------------------
 
 let _stopped = false;
+let _activePlanner: { abort: () => void } | null = null;
+let _activeLoop: { abort: () => void } | null = null;
 
 /**
  * Signal the agent to stop after its current step.
+ * Also aborts the active AgentLoop or TaskPlanner immediately.
  */
 export function stopAgent(): void {
   _stopped = true;
+  _activeLoop?.abort();
+  _activePlanner?.abort();
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +151,8 @@ async function runRealAgentLoop(
     maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
     toolFilter: resolveToolFilter(settings.toolPreset),
   });
+  _activeLoop = loop;
+  _activePlanner = null;
 
   const actions: string[] = [];
   let finalSummary: string | null = null;
@@ -192,6 +199,7 @@ async function runRealAgentLoop(
     }
   }
 
+  _activeLoop = null;
   const summary = finalSummary ?? 'Done.';
   updateMessage(thinkingMsgId, { text: summary, pending: false });
   return { actions, outcome, summary };
@@ -222,6 +230,7 @@ async function runRealPlannerLoop(
       toolFilter?: string[];
     }) => {
       run: (task: string) => AsyncGenerator<PlannerEvent>;
+      abort: () => void;
     };
     CloudProvider: new (options: {
       apiKey: string;
@@ -255,6 +264,8 @@ async function runRealPlannerLoop(
     maxSubTasks: settings.maxSubTasks > 0 ? settings.maxSubTasks : undefined,
     toolFilter: resolveToolFilter(settings.toolPreset),
   });
+  _activePlanner = planner;
+  _activeLoop = null;
 
   const actions: string[] = [];
   let finalSummary: string | null = null;
@@ -263,6 +274,7 @@ async function runRealPlannerLoop(
 
   for await (const event of planner.run(command)) {
     if (_stopped) {
+      planner.abort();
       finalSummary = 'Stopped.';
       outcome = 'stopped';
       break;
@@ -314,6 +326,7 @@ async function runRealPlannerLoop(
     }
   }
 
+  _activePlanner = null;
   const summary = finalSummary ?? 'Done.';
   updateMessage(thinkingMsgId, { text: summary, pending: false });
   return { actions, outcome, summary };
