@@ -361,17 +361,36 @@ function buildSystemPrompt(customInstructions: string): string {
 // ---------------------------------------------------------------------------
 
 function resolveToolFilter(preset: string): string[] | undefined {
-  switch (preset) {
-    case 'navigation':
-      return ['tap', 'long_press', 'swipe', 'scroll', 'global_action', 'open_app', 'find_node', 'wait', 'read_screen'];
-    case 'text_input':
-      return ['tap', 'type_text', 'find_node', 'scroll', 'read_screen'];
-    case 'read_only':
-      return ['read_screen', 'screenshot'];
-    case 'in_app':
-      return ['tap', 'long_press', 'type_text', 'swipe', 'scroll', 'find_node', 'wait', 'read_screen', 'screenshot'];
-    default:
-      return undefined;
+  try {
+    const { PHONE_TOOL_PRESETS } = require('react-native-device-agent') as {
+      PHONE_TOOL_PRESETS: Record<string, string[] | undefined>;
+    };
+    switch (preset) {
+      case 'navigation': return PHONE_TOOL_PRESETS.NAVIGATION;
+      case 'text_input': return PHONE_TOOL_PRESETS.TEXT_INPUT;
+      case 'read_only': return PHONE_TOOL_PRESETS.READ_ONLY;
+      case 'in_app': return PHONE_TOOL_PRESETS.IN_APP;
+      default: return undefined;
+    }
+  } catch {
+    // device-agent not linked — fall back to hardcoded lists
+    switch (preset) {
+      case 'navigation':
+        return ['tap', 'long_press', 'swipe', 'scroll', 'global_action', 'open_app',
+          'list_apps', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
+          'get_node_text', 'read_screen'];
+      case 'text_input':
+        return ['tap', 'type_text', 'clear_text', 'press_enter', 'find_node',
+          'find_all_nodes', 'wait_for_node', 'get_node_text', 'scroll', 'read_screen'];
+      case 'read_only':
+        return ['read_screen', 'screenshot', 'list_apps'];
+      case 'in_app':
+        return ['tap', 'long_press', 'type_text', 'clear_text', 'press_enter', 'swipe',
+          'scroll', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
+          'get_node_text', 'read_screen', 'screenshot'];
+      default:
+        return undefined;
+    }
   }
 }
 
