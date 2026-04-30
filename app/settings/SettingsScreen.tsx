@@ -320,6 +320,19 @@ export function SettingsScreen() {
           />
         </View>
 
+        {/* ── Context variables ── */}
+        <SectionHeader title="Context Variables" />
+        <View style={styles.card}>
+          <ContextJsonInput
+            value={settings.contextJson}
+            onChangeText={(v) => update({ contextJson: v })}
+          />
+          <View style={styles.divider} />
+          <SettingDescription
+            text={'JSON object of key-value pairs injected into the agent\'s prompt on every step. Example: {"username":"Matt","city":"NYC"}. Invalid JSON is silently ignored.'}
+          />
+        </View>
+
         {/* ── Voice output ── */}
         <SectionHeader title="Voice Output" />
         <View style={styles.card}>
@@ -548,6 +561,30 @@ function CustomInstructionsInput({
       numberOfLines={4}
       autoCapitalize="sentences"
       autoCorrect
+      returnKeyType="default"
+      textAlignVertical="top"
+    />
+  );
+}
+
+function ContextJsonInput({
+  value,
+  onChangeText,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+}) {
+  return (
+    <TextInput
+      style={styles.customInstructionsInput}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={'{"username":"Matt","language":"English"}'}
+      placeholderTextColor="#3a3a3a"
+      multiline
+      numberOfLines={3}
+      autoCapitalize="none"
+      autoCorrect={false}
       returnKeyType="default"
       textAlignVertical="top"
     />

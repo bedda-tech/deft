@@ -75,6 +75,12 @@ export interface Settings {
   maxScreenLength: number;
   /** Speak agent responses aloud via text-to-speech when true. */
   ttsEnabled: boolean;
+  /**
+   * JSON object string of key-value context variables injected into every
+   * agent prompt. Example: `{"username":"Matt","language":"Spanish"}`.
+   * Parsed at run-time; invalid JSON is silently ignored (falls back to {}).
+   */
+  contextJson: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -95,6 +101,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxHistoryItems: 0,
   maxScreenLength: 6000,
   ttsEnabled: false,
+  contextJson: '',
 };
 
 const SETTINGS_KEY = '@deft/settings';

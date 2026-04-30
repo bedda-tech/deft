@@ -116,6 +116,7 @@ async function runRealAgentLoop(
       maxHistoryItems?: number;
       maxScreenLength?: number;
       toolFilter?: string[];
+      context?: Record<string, string>;
     }) => {
       run: (task: string) => AsyncGenerator<AgentEvent>;
       abort: () => void;
@@ -150,6 +151,7 @@ async function runRealAgentLoop(
     maxHistoryItems: settings.maxHistoryItems > 0 ? settings.maxHistoryItems : undefined,
     maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
     toolFilter: resolveToolFilter(settings.toolPreset),
+    context: parseContextJson(settings.contextJson),
   });
   _activeLoop = loop;
   _activePlanner = null;
@@ -228,6 +230,7 @@ async function runRealPlannerLoop(
       maxScreenLength?: number;
       maxSubTasks?: number;
       toolFilter?: string[];
+      context?: Record<string, string>;
     }) => {
       run: (task: string) => AsyncGenerator<PlannerEvent>;
       abort: () => void;
@@ -263,6 +266,7 @@ async function runRealPlannerLoop(
     maxScreenLength: settings.maxScreenLength > 0 ? settings.maxScreenLength : 0,
     maxSubTasks: settings.maxSubTasks > 0 ? settings.maxSubTasks : undefined,
     toolFilter: resolveToolFilter(settings.toolPreset),
+    context: parseContextJson(settings.contextJson),
   });
   _activePlanner = planner;
   _activeLoop = null;
@@ -392,6 +396,25 @@ function resolveToolFilter(preset: string): string[] | undefined {
         return undefined;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Context variable parsing
+// ---------------------------------------------------------------------------
+
+function parseContextJson(json: string): Record<string, string> | undefined {
+  if (!json.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(json);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') result[k] = v;
+      }
+      return Object.keys(result).length > 0 ? result : undefined;
+    }
+  } catch { /* invalid JSON — silently ignore */ }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
