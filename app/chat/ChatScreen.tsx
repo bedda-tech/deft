@@ -417,23 +417,30 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
         <Text style={styles.micIcon}>{isRecording ? '■' : isProcessing ? '…' : '🎙'}</Text>
       </TouchableOpacity>
 
-      {/* Text input */}
-      <TextInput
-        style={[styles.textInput, inputDisabled && styles.textInputDisabled]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={
-          agentRunning ? 'Agent is running…' :
-          isRecording ? 'Listening… (tap ■ to stop)' :
-          'Tell Deft what to do'
-        }
-        placeholderTextColor="#555"
-        onSubmitEditing={onSend}
-        returnKeyType="send"
-        multiline
-        editable={!inputDisabled && !isRecording}
-        blurOnSubmit={false}
-      />
+      {/* Text input + character counter */}
+      <View style={styles.textInputWrapper}>
+        <TextInput
+          style={[styles.textInput, inputDisabled && styles.textInputDisabled]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={
+            agentRunning ? 'Agent is running…' :
+            isRecording ? 'Listening… (tap ■ to stop)' :
+            'Tell Deft what to do'
+          }
+          placeholderTextColor="#555"
+          onSubmitEditing={onSend}
+          returnKeyType="send"
+          multiline
+          editable={!inputDisabled && !isRecording}
+          blurOnSubmit={false}
+        />
+        {value.length > 0 && (
+          <Text style={[styles.charCounter, value.length > 400 && styles.charCounterWarn]}>
+            {value.length}/500
+          </Text>
+        )}
+      </View>
 
       {/* Send button */}
       <TouchableOpacity
@@ -739,8 +746,11 @@ const styles = StyleSheet.create({
   micIcon: {
     fontSize: 16,
   },
-  textInput: {
+  textInputWrapper: {
     flex: 1,
+    gap: 2,
+  },
+  textInput: {
     minHeight: 40,
     maxHeight: 120,
     backgroundColor: '#141414',
@@ -752,6 +762,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#fff',
     lineHeight: 20,
+  },
+  charCounter: {
+    fontSize: 11,
+    color: '#555',
+    textAlign: 'right',
+    paddingRight: 8,
+  },
+  charCounterWarn: {
+    color: '#ef4444',
   },
   sendButton: {
     width: 40,
