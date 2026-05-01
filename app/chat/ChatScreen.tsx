@@ -54,6 +54,7 @@ export function ChatScreen() {
     isRunning: false,
     currentTask: null,
     currentStep: 0,
+    maxSteps: 20,
     currentScreenState: null,
   });
   const listRef = useRef<FlatList<ChatMessage>>(null);
