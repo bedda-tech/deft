@@ -15,6 +15,8 @@ export interface AgentState {
   currentTask: string | null;
   /** How many observe→act cycles have completed. */
   currentStep: number;
+  /** Maximum steps allowed for this run (from settings). */
+  maxSteps: number;
   /** Most recent serialized screen state from the agent loop. */
   currentScreenState: string | null;
 }
@@ -23,6 +25,7 @@ const IDLE: AgentState = {
   isRunning: false,
   currentTask: null,
   currentStep: 0,
+  maxSteps: 20,
   currentScreenState: null,
 };
 
@@ -57,8 +60,8 @@ export function subscribeAgentState(
 // ---------------------------------------------------------------------------
 
 /** Mark the agent as active for the given task. */
-export function agentStarted(task: string): void {
-  _state = { isRunning: true, currentTask: task, currentStep: 0, currentScreenState: null };
+export function agentStarted(task: string, maxSteps: number = 20): void {
+  _state = { isRunning: true, currentTask: task, currentStep: 0, maxSteps, currentScreenState: null };
   notify();
 }
 

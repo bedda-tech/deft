@@ -191,6 +191,7 @@ export function ChatScreen() {
         {agentState.isRunning && (
           <AgentStatusBar
             step={agentState.currentStep}
+            maxSteps={agentState.maxSteps}
             onStop={stopAgent}
           />
         )}
@@ -226,12 +227,12 @@ function Header({ onClear }: { onClear: () => void }) {
 // Agent status bar (shown while agent is running)
 // ---------------------------------------------------------------------------
 
-function AgentStatusBar({ step, onStop }: { step: number; onStop: () => void }) {
+function AgentStatusBar({ step, maxSteps, onStop }: { step: number; maxSteps: number; onStop: () => void }) {
   return (
     <View style={styles.agentStatusBar}>
       <View style={styles.agentStatusDot} />
       <Text style={styles.agentStatusText}>
-        {step === 0 ? 'Thinking…' : `Step ${step}`}
+        {step === 0 ? 'Thinking…' : `Step ${step}/${maxSteps}`}
       </Text>
       <TouchableOpacity onPress={onStop} style={styles.stopButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.stopButtonText}>Stop</Text>

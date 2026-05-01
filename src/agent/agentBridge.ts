@@ -45,7 +45,7 @@ export function stopAgent(): void {
 
 export async function processCommand(command: string): Promise<void> {
   _stopped = false;
-  agentStarted(command);
+  agentStarted(command, getSettings().maxSteps);
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
 
   let outcome: SessionOutcome = 'complete';
