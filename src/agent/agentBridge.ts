@@ -382,7 +382,7 @@ function resolveToolFilter(preset: string): string[] | undefined {
       case 'navigation':
         return ['tap', 'long_press', 'swipe', 'scroll', 'global_action', 'open_app',
           'list_apps', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
-          'get_node_text', 'read_screen'];
+          'get_node_text', 'get_bounds', 'set_checked', 'read_screen'];
       case 'text_input':
         return ['tap', 'type_text', 'clear_text', 'press_enter', 'find_node',
           'find_all_nodes', 'wait_for_node', 'get_node_text', 'scroll', 'read_screen'];
@@ -391,7 +391,7 @@ function resolveToolFilter(preset: string): string[] | undefined {
       case 'in_app':
         return ['tap', 'long_press', 'type_text', 'clear_text', 'press_enter', 'swipe',
           'scroll', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
-          'get_node_text', 'read_screen', 'screenshot'];
+          'get_node_text', 'get_bounds', 'set_checked', 'read_screen', 'screenshot'];
       default:
         return undefined;
     }
