@@ -27,6 +27,7 @@ import {
   type AgentSession,
   type SessionOutcome,
   clearSessions,
+  removeSession,
   subscribeSessions,
 } from '../../src/store/historyStore';
 
@@ -37,10 +38,23 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export function HistoryScreen() {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => subscribeSessions(setSessions), []);
 
-  const handleClear = useCallback(() => clearSessions(), []);
+  const handleClear = useCallback(() => {
+    setSelectedId(null);
+    clearSessions();
+  }, []);
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
+    setSelectedId(null);
+    removeSession(id);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -59,7 +73,14 @@ export function HistoryScreen() {
         <FlatList
           data={sessions}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SessionRow session={item} />}
+          renderItem={({ item }) => (
+            <SessionRow
+              session={item}
+              isSelected={selectedId === item.id}
+              onSelect={handleSelect}
+              onDelete={handleDelete}
+            />
+          )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -72,21 +93,43 @@ export function HistoryScreen() {
 // Session row
 // ---------------------------------------------------------------------------
 
-function SessionRow({ session }: { session: AgentSession }) {
+interface SessionRowProps {
+  session: AgentSession;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasExtra = session.actions.length > 3;
 
   const toggle = useCallback(() => {
+    if (isSelected) {
+      onSelect(session.id);
+      return;
+    }
     if (!hasExtra) return;
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded((v) => !v);
-  }, [hasExtra]);
+  }, [hasExtra, isSelected, onSelect, session.id]);
+
+  const handleLongPress = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onSelect(session.id);
+  }, [onSelect, session.id]);
+
+  const handleDelete = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onDelete(session.id);
+  }, [onDelete, session.id]);
 
   return (
     <TouchableOpacity
-      activeOpacity={hasExtra ? 0.75 : 1}
+      activeOpacity={0.75}
       onPress={toggle}
-      style={styles.row}
+      onLongPress={handleLongPress}
+      style={[styles.row, isSelected && styles.rowSelected]}
     >
       <View style={styles.rowTop}>
         <Text style={styles.command} numberOfLines={2}>{session.command}</Text>
@@ -107,6 +150,16 @@ function SessionRow({ session }: { session: AgentSession }) {
 
       {session.actions.length > 0 && (
         <ActionList actions={session.actions} expanded={expanded} />
+      )}
+
+      {isSelected && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.deleteButtonText}>Delete session</Text>
+        </TouchableOpacity>
       )}
     </TouchableOpacity>
   );
@@ -226,6 +279,21 @@ const styles = StyleSheet.create({
     borderColor: '#1e1e1e',
     padding: 14,
     gap: 8,
+  },
+  rowSelected: {
+    borderColor: '#FF6B6B44',
+  },
+  deleteButton: {
+    marginTop: 4,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#3a1010',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
   rowTop: {
     flexDirection: 'row',

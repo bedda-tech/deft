@@ -123,3 +123,9 @@ export function clearSessions(): void {
   notify();
   AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
 }
+
+export function removeSession(id: string): void {
+  _sessions = _sessions.filter((s) => s.id !== id);
+  notify();
+  persist();
+}
