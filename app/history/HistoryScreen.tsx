@@ -16,6 +16,7 @@ import {
   LayoutAnimation,
   Platform,
   SafeAreaView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -124,6 +125,10 @@ function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps
     onDelete(session.id);
   }, [onDelete, session.id]);
 
+  const handleShare = useCallback(() => {
+    Share.share({ message: formatSessionText(session) }).catch(() => {});
+  }, [session]);
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
@@ -159,13 +164,22 @@ function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps
       )}
 
       {isSelected && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDelete}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.deleteButtonText}>Delete session</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.shareButton]}
+            onPress={handleShare}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.shareButtonText}>Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={handleDelete}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -249,6 +263,16 @@ function formatRelativeTime(timestamp: number): string {
   return `${days}d ago`;
 }
 
+function formatSessionText(session: AgentSession): string {
+  const date = new Date(session.timestamp).toLocaleString();
+  const outcomeLine = `${session.outcome.charAt(0).toUpperCase() + session.outcome.slice(1)} · ${session.stepCount} ${session.stepCount === 1 ? 'step' : 'steps'}${session.durationMs !== undefined ? ` · ${formatDuration(session.durationMs)}` : ''}`;
+  const actionLines = session.actions.length > 0
+    ? '\nActions:\n' + session.actions.map((a) => `• ${a}`).join('\n')
+    : '';
+  const summaryLine = session.summary ? `\n\n${session.summary}` : '';
+  return `Deft Agent Session — ${date}\n\nCommand: ${session.command}\n${outcomeLine}${actionLines}${summaryLine}`;
+}
+
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -297,12 +321,27 @@ const styles = StyleSheet.create({
   rowSelected: {
     borderColor: '#FF6B6B44',
   },
-  deleteButton: {
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 4,
+  },
+  actionButton: {
+    flex: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#3a1010',
     alignItems: 'center',
+  },
+  shareButton: {
+    backgroundColor: '#1a2a1a',
+  },
+  shareButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4ADE80',
+  },
+  deleteButton: {
+    backgroundColor: '#3a1010',
   },
   deleteButtonText: {
     fontSize: 13,
