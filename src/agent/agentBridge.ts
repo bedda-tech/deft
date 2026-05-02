@@ -530,10 +530,75 @@ type PlannerEvent =
   | { type: 'error'; error: Error };
 
 function formatAction(tool: string, args: Record<string, unknown>): string {
-  const argStr = Object.entries(args)
-    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
-    .join(', ');
-  return argStr ? `${tool}(${argStr})` : tool;
+  const str = (key: string) => (typeof args[key] === 'string' ? (args[key] as string) : '');
+  const num = (key: string) => (typeof args[key] === 'number' ? (args[key] as number) : 0);
+
+  switch (tool) {
+    case 'tap':
+      if (str('nodeId')) return `Tap node ${str('nodeId')}`;
+      return `Tap at (${num('x')}, ${num('y')})`;
+    case 'long_press':
+      if (str('nodeId')) return `Long press node ${str('nodeId')}`;
+      return `Long press at (${num('x')}, ${num('y')})`;
+    case 'type_text':
+      return `Type "${str('text')}"${str('nodeId') ? ` into ${str('nodeId')}` : ''}`;
+    case 'clear_text':
+      return str('nodeId') ? `Clear text in ${str('nodeId')}` : 'Clear focused text field';
+    case 'press_enter':
+      return str('nodeId') ? `Press Enter in ${str('nodeId')}` : 'Press Enter';
+    case 'swipe':
+      return `Swipe (${num('startX')}, ${num('startY')}) → (${num('endX')}, ${num('endY')})`;
+    case 'scroll':
+      return str('nodeId')
+        ? `Scroll ${str('direction')} in ${str('nodeId')}`
+        : `Scroll ${str('direction')}`;
+    case 'open_app':
+      return `Open app ${str('packageName')}`;
+    case 'global_action':
+      return `Press ${str('action')}`;
+    case 'wait':
+      return `Wait ${args.ms !== undefined ? `${num('ms')}ms` : '1s'}`;
+    case 'read_screen':
+      return 'Read screen';
+    case 'screenshot':
+      return 'Take screenshot';
+    case 'list_apps':
+      return 'List installed apps';
+    case 'find_node':
+      return `Find node ${formatNodeQuery(args)}`;
+    case 'find_all_nodes':
+      return `Find all nodes ${formatNodeQuery(args)}`;
+    case 'wait_for_node':
+      return `Wait for node ${formatNodeQuery(args)}`;
+    case 'wait_for_change':
+      return 'Wait for screen change';
+    case 'get_node_text':
+      return `Read text of ${str('nodeId')}`;
+    case 'get_bounds':
+      return `Get bounds of ${str('nodeId')}`;
+    case 'set_checked':
+      return `${args.checked ? 'Check' : 'Uncheck'} ${str('nodeId')}`;
+    case 'write_note':
+      return `Save note "${str('key')}" = "${str('value')}"`;
+    case 'read_note':
+      return `Read note "${str('key')}"`;
+    default: {
+      const argStr = Object.entries(args)
+        .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+        .join(', ');
+      return argStr ? `${tool}(${argStr})` : tool;
+    }
+  }
+}
+
+function formatNodeQuery(args: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (typeof args.text === 'string') parts.push(`text="${args.text}"`);
+  if (typeof args.contentDescription === 'string') parts.push(`desc="${args.contentDescription}"`);
+  if (typeof args.className === 'string') parts.push(`class=${args.className}`);
+  if (typeof args.isChecked === 'boolean') parts.push(`checked=${args.isChecked}`);
+  if (typeof args.isEnabled === 'boolean') parts.push(`enabled=${args.isEnabled}`);
+  return parts.length > 0 ? `[${parts.join(', ')}]` : '[]';
 }
 
 // ---------------------------------------------------------------------------
