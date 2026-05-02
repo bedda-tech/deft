@@ -18,7 +18,7 @@ import {
 } from '../store/chatStore';
 import { getSettings } from '../store/settingsStore';
 import { addSession, type SessionOutcome } from '../store/historyStore';
-import { agentStarted, agentStepped, agentStopped } from '../store/agentStore';
+import { agentActioned, agentStarted, agentStepped, agentStopped } from '../store/agentStore';
 import { getGenerateFn, getGenerateWithImageFn } from './llmBridge';
 
 // ---------------------------------------------------------------------------
@@ -174,6 +174,7 @@ async function runRealAgentLoop(
       const text = formatAction(event.tool, event.args);
       addMessage('agent', 'action', text);
       actions.push(text);
+      agentActioned();
     } else if (event.type === 'observation') {
       addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
       agentStepped(event.step, event.screenState);
@@ -303,6 +304,7 @@ async function runRealPlannerLoop(
         const text = formatAction(inner.tool, inner.args);
         addMessage('agent', 'action', text);
         actions.push(text);
+        agentActioned();
       } else if (inner.type === 'observation') {
         agentStepped(inner.step, inner.screenState);
       } else if (inner.type === 'thinking' && inner.content) {

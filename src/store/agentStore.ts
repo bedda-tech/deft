@@ -19,6 +19,8 @@ export interface AgentState {
   maxSteps: number;
   /** Most recent serialized screen state from the agent loop. */
   currentScreenState: string | null;
+  /** Number of tool actions dispatched so far in this run. */
+  actionCount: number;
 }
 
 const IDLE: AgentState = {
@@ -27,6 +29,7 @@ const IDLE: AgentState = {
   currentStep: 0,
   maxSteps: 20,
   currentScreenState: null,
+  actionCount: 0,
 };
 
 let _state: AgentState = { ...IDLE };
@@ -61,7 +64,7 @@ export function subscribeAgentState(
 
 /** Mark the agent as active for the given task. */
 export function agentStarted(task: string, maxSteps: number = 20): void {
-  _state = { isRunning: true, currentTask: task, currentStep: 0, maxSteps, currentScreenState: null };
+  _state = { isRunning: true, currentTask: task, currentStep: 0, maxSteps, currentScreenState: null, actionCount: 0 };
   notify();
 }
 
@@ -72,6 +75,12 @@ export function agentStepped(step: number, screenState?: string): void {
     currentStep: step,
     currentScreenState: screenState ?? _state.currentScreenState,
   };
+  notify();
+}
+
+/** Increment the action counter for the current run. */
+export function agentActioned(): void {
+  _state = { ..._state, actionCount: _state.actionCount + 1 };
   notify();
 }
 

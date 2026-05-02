@@ -56,7 +56,10 @@ export function ChatScreen() {
     currentStep: 0,
     maxSteps: 20,
     currentScreenState: null,
+    actionCount: 0,
   });
+  const [elapsedSecs, setElapsedSecs] = useState(0);
+  const agentStartTimeRef = useRef<number | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const ttsEnabledRef = useRef(getSettings().ttsEnabled);
   // Maps message id → pending state from the previous update, used to detect transitions.
@@ -93,9 +96,27 @@ export function ChatScreen() {
 
   // Subscribe to agent running state
   useEffect(() => {
-    const unsub = subscribeAgentState(setAgentState);
+    const unsub = subscribeAgentState((state) => {
+      setAgentState(state);
+      if (state.isRunning && agentStartTimeRef.current === null) {
+        agentStartTimeRef.current = Date.now();
+        setElapsedSecs(0);
+      } else if (!state.isRunning) {
+        agentStartTimeRef.current = null;
+      }
+    });
     return unsub;
   }, []);
+
+  // Tick elapsed time every second while the agent is running.
+  useEffect(() => {
+    if (!agentState.isRunning) return;
+    const id = setInterval(() => {
+      const start = agentStartTimeRef.current;
+      if (start !== null) setElapsedSecs(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [agentState.isRunning]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -193,6 +214,8 @@ export function ChatScreen() {
           <AgentStatusBar
             step={agentState.currentStep}
             maxSteps={agentState.maxSteps}
+            actionCount={agentState.actionCount}
+            elapsedSecs={elapsedSecs}
             onStop={stopAgent}
           />
         )}
@@ -228,13 +251,26 @@ function Header({ onClear }: { onClear: () => void }) {
 // Agent status bar (shown while agent is running)
 // ---------------------------------------------------------------------------
 
-function AgentStatusBar({ step, maxSteps, onStop }: { step: number; maxSteps: number; onStop: () => void }) {
+function AgentStatusBar({
+  step,
+  maxSteps,
+  actionCount,
+  elapsedSecs,
+  onStop,
+}: {
+  step: number;
+  maxSteps: number;
+  actionCount: number;
+  elapsedSecs: number;
+  onStop: () => void;
+}) {
+  const stepLabel = step === 0 ? 'Thinking…' : `Step ${step}/${maxSteps}`;
+  const actionLabel = actionCount > 0 ? ` · ${actionCount} action${actionCount !== 1 ? 's' : ''}` : '';
+  const timeLabel = elapsedSecs > 0 ? ` · ${elapsedSecs}s` : '';
   return (
     <View style={styles.agentStatusBar}>
       <View style={styles.agentStatusDot} />
-      <Text style={styles.agentStatusText}>
-        {step === 0 ? 'Thinking…' : `Step ${step}/${maxSteps}`}
-      </Text>
+      <Text style={styles.agentStatusText}>{stepLabel}{actionLabel}{timeLabel}</Text>
       <TouchableOpacity onPress={onStop} style={styles.stopButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
