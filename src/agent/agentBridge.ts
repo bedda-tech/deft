@@ -47,6 +47,7 @@ export async function processCommand(command: string): Promise<void> {
   _stopped = false;
   agentStarted(command, getSettings().maxSteps);
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
+  const startedAt = Date.now();
 
   let outcome: SessionOutcome = 'complete';
   let actions: string[] = [];
@@ -65,7 +66,7 @@ export async function processCommand(command: string): Promise<void> {
     agentStopped();
   }
 
-  addSession(command, actions, outcome, summary);
+  addSession(command, actions, outcome, summary, Date.now() - startedAt);
 }
 
 // ---------------------------------------------------------------------------

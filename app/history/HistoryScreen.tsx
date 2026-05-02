@@ -144,6 +144,12 @@ function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps
         <Text style={styles.metaText}>
           {session.stepCount} {session.stepCount === 1 ? 'step' : 'steps'}
         </Text>
+        {session.durationMs !== undefined && (
+          <>
+            <Text style={styles.metaDot}>·</Text>
+            <Text style={styles.metaText}>{formatDuration(session.durationMs)}</Text>
+          </>
+        )}
         <Text style={styles.metaDot}>·</Text>
         <Text style={styles.metaText}>{formatRelativeTime(session.timestamp)}</Text>
       </View>
@@ -221,6 +227,14 @@ function EmptyState() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function formatDuration(ms: number): string {
+  const secs = Math.round(ms / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  const rem = secs % 60;
+  return rem > 0 ? `${mins}m ${rem}s` : `${mins}m`;
+}
 
 function formatRelativeTime(timestamp: number): string {
   const diff = Date.now() - timestamp;

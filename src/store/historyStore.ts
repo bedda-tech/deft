@@ -24,6 +24,8 @@ export interface AgentSession {
   summary: string;
   /** Unix timestamp (ms) when the session completed. */
   timestamp: number;
+  /** Wall-clock duration of the session in milliseconds. Absent on sessions recorded before this field was added. */
+  durationMs?: number;
 }
 
 const STORAGE_KEY = 'deft.sessions';
@@ -101,6 +103,7 @@ export function addSession(
   actions: string[],
   outcome: SessionOutcome,
   summary: string,
+  durationMs?: number,
 ): void {
   _sessions = [
     {
@@ -111,6 +114,7 @@ export function addSession(
       outcome,
       summary,
       timestamp: Date.now(),
+      durationMs,
     },
     ..._sessions,
   ];
