@@ -7,6 +7,8 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-05-26
+
 ### Added
 
 **Chat interface**
@@ -101,5 +103,6 @@ Initial public release.
 - `.github/workflows/ci.yml`: TypeScript typecheck on every push
 - `.github/workflows/release.yml`: APK build + upload to GitHub Releases on version tags
 
-[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/bedda-tech/deft/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bedda-tech/deft/releases/tag/v1.0.0
