@@ -51,6 +51,17 @@ On first run, the app will prompt you to enable the Deft AccessibilityService an
 
 Please open an issue before starting large features to avoid duplicate work.
 
+## Publishing to Google Play
+
+To submit a release APK/AAB to Google Play via `eas submit --platform android --profile production`, you need a **Google Play service account key**:
+
+1. Open [Google Play Console](https://play.google.com/console) → Setup → API access
+2. Link to a Google Cloud project and create a service account with **Release manager** role
+3. Download the JSON key and save it as `.eas/service-account-key.json` (this file is gitignored — never commit it)
+4. Run: `eas submit --platform android --profile production`
+
+The `eas.json` submit profile is already configured to target the **internal test track**. Promote to production from the Play Console after internal testing passes.
+
 ## Related Repos
 
 - [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller) — screen reading, gestures, global actions
