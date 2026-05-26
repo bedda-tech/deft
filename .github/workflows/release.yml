@@ -48,9 +48,18 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      # Pre-install executorch devDeps so that bob is available when npm install
+      # runs the package's `prepare` script (bob build) as a file: dependency.
+      # npm does not install devDependencies of file: packages automatically.
+      - name: Build react-native-executorch
+        working-directory: react-native-executorch/packages/react-native-executorch
+        run: |
+          npm install --ignore-scripts
+          npx react-native-builder-bob build
+
       - name: Install dependencies
         working-directory: deft
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Build APK (preview)
         working-directory: deft
