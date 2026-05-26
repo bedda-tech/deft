@@ -35,6 +35,7 @@ import { processCommand, stopAgent } from '../../src/agent/agentBridge';
 import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
 import { getSettings, subscribeSettings } from '../../src/store/settingsStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
+import { speakText } from '../../src/voice/voiceBridge';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,7 +82,7 @@ export function ChatScreen() {
             const prevPending = prevPendingRef.current.get(msg.id);
             // Speak when: newly added as resolved, or just transitioned from pending→resolved.
             if (prevPending === undefined || prevPending === true) {
-              speakAgentResponse(msg.text);
+              void speakText(msg.text);
             }
           }
         }
@@ -531,21 +532,7 @@ function stopSpeechRecognition(): void {
 }
 
 interface SpeechModule {
-  speak(text: string, options?: { language?: string }): void;
   stop(): void;
-}
-
-/**
- * Speak the given text using expo-speech TTS. Stops any in-progress speech
- * before starting. Falls back gracefully when the module is not linked.
- */
-function speakAgentResponse(text: string): void {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Speech = require('expo-speech') as SpeechModule;
-    Speech.stop();
-    Speech.speak(text, { language: 'en-US' });
-  } catch { /* expo-speech not linked */ }
 }
 
 /** Stop any ongoing TTS utterance. */

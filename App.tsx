@@ -8,6 +8,7 @@ import { SettingsScreen } from './app/settings/SettingsScreen';
 import { isOnboardingComplete, completeOnboarding } from './src/store/onboardingStore';
 import { loadSettings, subscribeSettings } from './src/store/settingsStore';
 import { AgentOverlay } from './src/components/AgentOverlay';
+import { VoiceModule } from './src/components/VoiceModule';
 import { unregisterLLM } from './src/agent/llmBridge';
 import { initModel } from './src/agent/modelManager';
 
@@ -78,6 +79,7 @@ export default function App() {
       </View>
       <TabBar tab={tab} onTab={setTab} />
       <AgentOverlay />
+      <VoiceModule />
       <StatusBar style="light" />
     </View>
   );
