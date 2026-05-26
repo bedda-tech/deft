@@ -7,6 +7,40 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+**Chat interface**
+- Action count and elapsed time displayed in the agent status bar
+- Step X/Y progress indicator in the agent status bar
+- Human-readable action descriptions in chat history (e.g. "Tap node btn-42", "Type "hello"")
+- Character counter on the chat input field (X/500, turns red above 400)
+
+**History screen**
+- Share button on session rows to share session transcripts
+- Session duration recorded and displayed per history row
+
+**Settings screen**
+- Timeout setting for agent loop (max seconds before auto-stop)
+- Max history items setting to cap per-session step retention
+- Max screen length setting to limit accessibility tree size sent to LLM
+- Tool preset selector (read-only / navigation / in-app) with maxSubTasks field for plan mode
+- Context variables field with JSON input validated by `parseContextJson`
+
+**Agent infrastructure**
+- Text-to-speech for agent responses via `expo-speech`
+- Vibration feedback on agent actions and on timeout events
+- `get_bounds` and `set_checked` tools added to navigation and in-app tool presets
+
+### Changed
+
+- `TaskPlanner.abort()` is now wired so stopping the agent is immediate even mid-planner execution
+
+### Fixed
+
+- Missing `maxSteps` field in the initial `AgentState` value in `ChatScreen.tsx` (caused TypeScript CI failure)
+- `resolveToolFilter` now stays in sync with `PHONE_TOOL_PRESETS` to prevent tool mismatch
+- `agentBridge` now handles the `failed` agent event and includes `task_failed` in the system prompt
+
 ## [1.0.0] – 2026-04-22
 
 Initial public release.
