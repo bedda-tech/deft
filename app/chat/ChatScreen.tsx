@@ -35,13 +35,14 @@ import { processCommand, stopAgent } from '../../src/agent/agentBridge';
 import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
 import { getSettings, subscribeSettings } from '../../src/store/settingsStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
-import { speakText } from '../../src/voice/voiceBridge';
+import { speakText, stopSpeech } from '../../src/voice/voiceBridge';
+import { usePushToTalk, type PTTState } from '../../src/hooks/useVoice';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type RecordingState = 'idle' | 'recording' | 'processing';
+type RecordingState = PTTState; // alias for tap-toggle SR state
 
 // ---------------------------------------------------------------------------
 // Root component
@@ -51,6 +52,7 @@ export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [voiceMode, setVoiceMode] = useState(getSettings().voiceMode);
   const [agentState, setAgentState] = useState<AgentState>({
     isRunning: false,
     currentTask: null,
@@ -62,13 +64,18 @@ export function ChatScreen() {
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const agentStartTimeRef = useRef<number | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
-  const ttsEnabledRef = useRef(getSettings().ttsEnabled);
+  const ttsEnabledRef = useRef(getSettings().ttsEnabled || getSettings().voiceMode);
+  const voiceModeRef = useRef(getSettings().voiceMode);
   // Maps message id → pending state from the previous update, used to detect transitions.
   const prevPendingRef = useRef<Map<string, boolean>>(new Map());
 
-  // Track the latest ttsEnabled setting without re-subscribing to messages.
+  // Track the latest ttsEnabled / voiceMode settings without re-subscribing to messages.
   useEffect(() => {
-    return subscribeSettings((s) => { ttsEnabledRef.current = s.ttsEnabled; });
+    return subscribeSettings((s) => {
+      voiceModeRef.current = s.voiceMode;
+      ttsEnabledRef.current = s.ttsEnabled || s.voiceMode;
+      setVoiceMode(s.voiceMode);
+    });
   }, []);
 
   // Subscribe to the shared message store; trigger TTS when an agent text message resolves.
@@ -136,6 +143,10 @@ export function ChatScreen() {
     addMessage('user', 'text', trimmed);
     await processCommand(trimmed);
   }, []);
+
+  // PTT hook: auto-submits the transcript as a command.
+  const { pttState, whisperAvailable, startRecording, stopRecording } =
+    usePushToTalk(sendText);
 
   const handleSend = useCallback(() => {
     sendText(inputText);
@@ -225,8 +236,12 @@ export function ChatScreen() {
           onChangeText={setInputText}
           onSend={handleSend}
           onVoice={handleVoice}
-          recordingState={recordingState}
+          recordingState={voiceMode ? pttState : recordingState}
           agentRunning={agentState.isRunning}
+          voiceMode={voiceMode}
+          whisperAvailable={whisperAvailable}
+          onMicPressIn={voiceMode ? startRecording : undefined}
+          onMicPressOut={voiceMode ? stopRecording : undefined}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -432,28 +447,44 @@ interface InputBarProps {
   onVoice: () => void;
   recordingState: RecordingState;
   agentRunning?: boolean;
+  voiceMode?: boolean;
+  whisperAvailable?: boolean;
+  onMicPressIn?: () => Promise<void>;
+  onMicPressOut?: () => Promise<void>;
 }
 
-function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentRunning }: InputBarProps) {
+function InputBar({
+  value, onChangeText, onSend, onVoice, recordingState, agentRunning,
+  voiceMode, whisperAvailable, onMicPressIn, onMicPressOut,
+}: InputBarProps) {
   const isRecording = recordingState === 'recording';
   const isProcessing = recordingState === 'processing';
   const inputDisabled = isProcessing || !!agentRunning;
   const canSend = value.trim().length > 0 && !inputDisabled && !isRecording;
 
+  const micIcon = isProcessing ? '…' : isRecording ? '■' : '🎙';
+
   return (
     <View style={styles.inputBar}>
-      {/* Mic button */}
+      {/* Mic button: PTT (press-and-hold) in voiceMode, tap-toggle otherwise */}
       <TouchableOpacity
         style={[
           styles.micButton,
           isRecording && styles.micButtonActive,
           isProcessing && styles.micButtonProcessing,
+          voiceMode && styles.micButtonVoiceMode,
         ]}
-        onPress={onVoice}
-        disabled={inputDisabled}
+        onPress={voiceMode ? undefined : onVoice}
+        onPressIn={voiceMode ? () => { onMicPressIn?.(); } : undefined}
+        onPressOut={voiceMode ? () => { onMicPressOut?.(); } : undefined}
+        disabled={inputDisabled && !voiceMode}
         activeOpacity={0.75}
+        delayLongPress={0}
       >
-        <Text style={styles.micIcon}>{isRecording ? '■' : isProcessing ? '…' : '🎙'}</Text>
+        <Text style={styles.micIcon}>{micIcon}</Text>
+        {voiceMode && !isProcessing && (
+          <Text style={styles.micHint}>{isRecording ? 'Release' : 'Hold'}</Text>
+        )}
       </TouchableOpacity>
 
       {/* Text input + character counter */}
@@ -464,7 +495,10 @@ function InputBar({ value, onChangeText, onSend, onVoice, recordingState, agentR
           onChangeText={onChangeText}
           placeholder={
             agentRunning ? 'Agent is running…' :
+            isProcessing ? 'Transcribing…' :
+            isRecording && voiceMode ? 'Listening… (release to send)' :
             isRecording ? 'Listening… (tap ■ to stop)' :
+            voiceMode ? 'Hold mic to speak, or type' :
             'Tell Deft what to do'
           }
           placeholderTextColor="#555"
@@ -531,18 +565,6 @@ function stopSpeechRecognition(): void {
   } catch { /* not linked */ }
 }
 
-interface SpeechModule {
-  stop(): void;
-}
-
-/** Stop any ongoing TTS utterance. */
-function stopSpeech(): void {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Speech = require('expo-speech') as SpeechModule;
-    Speech.stop();
-  } catch { /* not linked */ }
-}
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -768,8 +790,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderColor: '#818cf8',
   },
+  micButtonVoiceMode: {
+    backgroundColor: '#1a1a2a',
+    borderColor: '#6366f1',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
   micIcon: {
     fontSize: 16,
+  },
+  micHint: {
+    fontSize: 8,
+    color: '#6366f1',
+    marginTop: 1,
+    textAlign: 'center',
   },
   textInputWrapper: {
     flex: 1,

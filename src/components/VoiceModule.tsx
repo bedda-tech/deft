@@ -25,8 +25,10 @@ import {
 } from 'react-native-executorch';
 import {
   registerSpeakFn,
+  registerStopKokoroFn,
   registerTranscribeFn,
   unregisterSpeakFn,
+  unregisterStopKokoroFn,
   unregisterTranscribeFn,
 } from '../voice/voiceBridge';
 
@@ -50,8 +52,15 @@ export function VoiceModule(): null {
       const samples = await tts.forward({ text });
       await playPcmAudio(samples);
     };
+    const stopFn = async (): Promise<void> => {
+      await stopActiveSound();
+    };
     registerSpeakFn(speakFn);
-    return () => unregisterSpeakFn();
+    registerStopKokoroFn(stopFn);
+    return () => {
+      unregisterSpeakFn();
+      unregisterStopKokoroFn();
+    };
   }, [tts.isReady, tts.forward]);
 
   return null;
@@ -64,12 +73,32 @@ export function VoiceModule(): null {
 const KOKORO_SAMPLE_RATE = 22050;
 const TTS_CACHE_FILENAME = 'kokoro_tts_output.wav';
 
+interface SoundHandle {
+  stopAsync(): Promise<unknown>;
+  unloadAsync(): Promise<unknown>;
+  playAsync(): Promise<unknown>;
+  setOnPlaybackStatusUpdate(fn: (s: { isLoaded: boolean; didJustFinish?: boolean }) => void): void;
+}
+
+let _activeSound: SoundHandle | null = null;
+
+async function stopActiveSound(): Promise<void> {
+  if (_activeSound) {
+    const s = _activeSound;
+    _activeSound = null;
+    await s.stopAsync().catch(() => {});
+    await s.unloadAsync().catch(() => {});
+  }
+}
+
 async function playPcmAudio(samples: Float32Array): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const FileSystem = require('expo-file-system') as typeof import('expo-file-system');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Audio } = require('expo-av') as typeof import('expo-av');
+
+    await stopActiveSound();
 
     const uri = (FileSystem.cacheDirectory ?? '') + TTS_CACHE_FILENAME;
     const wavBytes = encodeWav(samples, KOKORO_SAMPLE_RATE);
@@ -79,11 +108,17 @@ async function playPcmAudio(samples: Float32Array): Promise<void> {
     });
 
     const { sound } = await Audio.Sound.createAsync({ uri });
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
-      }
+    _activeSound = sound as unknown as SoundHandle;
+
+    await new Promise<void>((resolve) => {
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          _activeSound = null;
+          sound.unloadAsync().catch(() => {});
+          resolve();
+        }
+      });
+      sound.playAsync().catch(() => resolve());
     });
   } catch {
     // expo-file-system or expo-av not linked — silent; voiceBridge falls back to expo-speech

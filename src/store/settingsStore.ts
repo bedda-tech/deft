@@ -76,6 +76,12 @@ export interface Settings {
   /** Speak agent responses aloud via text-to-speech when true. */
   ttsEnabled: boolean;
   /**
+   * Push-to-talk voice mode. When true, the mic button becomes press-and-hold:
+   * hold to record via Whisper STT (or expo-speech-recognition fallback),
+   * release to auto-submit. Also enables TTS playback for agent responses.
+   */
+  voiceMode: boolean;
+  /**
    * JSON object string of key-value context variables injected into every
    * agent prompt. Example: `{"username":"Matt","language":"Spanish"}`.
    * Parsed at run-time; invalid JSON is silently ignored (falls back to {}).
@@ -101,6 +107,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxHistoryItems: 0,
   maxScreenLength: 6000,
   ttsEnabled: false,
+  voiceMode: false,
   contextJson: '',
 };
 

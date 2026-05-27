@@ -9,10 +9,12 @@
  */
 
 type SpeakFn = (text: string) => Promise<void>;
+type StopFn = () => Promise<void>;
 type TranscribeFn = (waveform: Float32Array) => Promise<string>;
 type ReadyListener = (ready: boolean) => void;
 
 let _speakFn: SpeakFn | null = null;
+let _stopKokoroFn: StopFn | null = null;
 let _transcribeFn: TranscribeFn | null = null;
 const _ttsListeners = new Set<ReadyListener>();
 const _sttListeners = new Set<ReadyListener>();
@@ -29,6 +31,14 @@ export function registerSpeakFn(fn: SpeakFn): void {
 export function unregisterSpeakFn(): void {
   _speakFn = null;
   _ttsListeners.forEach((cb) => cb(false));
+}
+
+export function registerStopKokoroFn(fn: StopFn): void {
+  _stopKokoroFn = fn;
+}
+
+export function unregisterStopKokoroFn(): void {
+  _stopKokoroFn = null;
 }
 
 export function subscribeIsTTSReady(fn: ReadyListener): () => void {
@@ -59,6 +69,7 @@ export async function speakText(text: string): Promise<void> {
 }
 
 export function stopSpeech(): void {
+  _stopKokoroFn?.().catch(() => {});
   try {
     interface SpeechModule { stop(): void }
     const Speech = require('expo-speech') as SpeechModule;

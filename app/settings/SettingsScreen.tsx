@@ -333,9 +333,19 @@ export function SettingsScreen() {
           />
         </View>
 
-        {/* ── Voice output ── */}
-        <SectionHeader title="Voice Output" />
+        {/* ── Voice ── */}
+        <SectionHeader title="Voice" />
         <View style={styles.card}>
+          <ToggleRow
+            label="Push-to-talk voice mode"
+            value={settings.voiceMode}
+            onChange={(v) => update({ voiceMode: v })}
+          />
+          <View style={styles.divider} />
+          <SettingDescription
+            text="Hold the mic button to record, release to transcribe and auto-submit. Uses Whisper on-device STT when available; falls back to Android SpeechRecognizer. Also enables TTS playback for agent responses."
+          />
+          <View style={styles.divider} />
           <ToggleRow
             label="Speak agent responses (TTS)"
             value={settings.ttsEnabled}
@@ -343,7 +353,7 @@ export function SettingsScreen() {
           />
           <View style={styles.divider} />
           <SettingDescription
-            text="When enabled, Deft reads agent completion messages aloud using text-to-speech. Pairs naturally with voice input for a fully hands-free experience."
+            text="Read agent completion messages aloud via Kokoro text-to-speech (or expo-speech fallback). Automatically enabled when voice mode is on."
           />
         </View>
 
