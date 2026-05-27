@@ -42,7 +42,7 @@ jobs:
       - name: Build react-native-executorch (generates lib/ type declarations)
         working-directory: react-native-executorch/packages/react-native-executorch
         run: |
-          npm install --ignore-scripts
+          npm install --ignore-scripts --no-workspaces
           npx react-native-builder-bob build
 
       - name: Install dependencies

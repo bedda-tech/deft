@@ -54,7 +54,7 @@ jobs:
       - name: Build react-native-executorch
         working-directory: react-native-executorch/packages/react-native-executorch
         run: |
-          npm install --ignore-scripts
+          npm install --ignore-scripts --no-workspaces
           npx react-native-builder-bob build
 
       - name: Install dependencies
