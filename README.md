@@ -20,38 +20,19 @@ Deft is the consumer app that combines three open-source React Native libraries 
 
 ## How It Works
 
-```
- "Open Settings and turn on Wi-Fi"
-         |
-         v
- +-------------------+
- |     Deft App       |   Chat UI + Voice Input
- +-------------------+
-         |
-         v
- +-------------------+
- | device-agent       |   Observe -> Think -> Act -> Repeat
- +-------------------+
-    |         |
-    v         v
- a11y-ctrl  executorch
-    |         |
-    v         v
- Android    Gemma 4
- A11y       (on-device
- Service     LLM)
-    |
-    v
- Any app on your phone
-```
+![Deft Architecture](assets/architecture.svg)
 
-1. You say or type a command
-2. The agent reads the current screen via the accessibility tree
-3. Gemma 4 (running locally on your phone) decides what action to take
-4. The action is executed (tap, swipe, type, navigate)
-5. The agent observes the result and repeats until done
+> Full diagram source: [docs/architecture.md](docs/architecture.md)
 
-All inference and control happens on-device. No data leaves your phone.
+1. You speak or type a command in the chat UI
+2. If voice mode is on, Whisper STT (on-device) transcribes your speech
+3. `react-native-device-agent` reads the current screen via the Android accessibility tree
+4. Gemma 4 (running entirely on your phone) decides what action to take
+5. The action is executed — tap, swipe, type, navigate, or anything else
+6. The agent observes the result and repeats until the task is complete
+7. Agent responses are read aloud via Kokoro TTS when voice mode is enabled
+
+All inference and phone control happens on-device. No data leaves your phone unless you explicitly enable cloud fallback in Settings.
 
 ## Features
 

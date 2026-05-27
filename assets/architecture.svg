@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 680" width="820" height="680" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L8,4 z" fill="#555"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L8,4 z" fill="#4ADE80"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L8,4 z" fill="#a855f7"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L8,4 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="820" height="680" fill="#0a0a0a" rx="12"/>
+
+  <!-- Title -->
+  <text x="410" y="30" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" letter-spacing="-0.3">Deft — Architecture Overview</text>
+
+  <!-- ── USER ── -->
+  <rect x="330" y="48" width="160" height="42" rx="21" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+  <text x="410" y="65" text-anchor="middle" fill="#aaa" font-size="11" font-weight="600" text-transform="uppercase" letter-spacing="0.5">USER</text>
+  <text x="410" y="80" text-anchor="middle" fill="#666" font-size="10">voice / text command</text>
+
+  <!-- Arrow: User → Deft App -->
+  <line x1="410" y1="90" x2="410" y2="108" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── DEFT APP ── -->
+  <rect x="30" y="112" width="760" height="110" rx="10" fill="#12122a" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="50" y="130" fill="#6366f1" font-size="11" font-weight="700" letter-spacing="0.5">DEFT APP</text>
+
+  <!-- Chat UI -->
+  <rect x="46" y="138" width="118" height="72" rx="7" fill="#1a1a3a" stroke="#6366f1" stroke-width="1"/>
+  <text x="105" y="156" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Chat UI</text>
+  <text x="105" y="172" text-anchor="middle" fill="#888" font-size="9">ChatScreen.tsx</text>
+  <text x="105" y="186" text-anchor="middle" fill="#888" font-size="9">text / voice input</text>
+  <text x="105" y="200" text-anchor="middle" fill="#888" font-size="9">message history</text>
+
+  <!-- Voice Module -->
+  <rect x="176" y="138" width="118" height="72" rx="7" fill="#1a1a3a" stroke="#6366f1" stroke-width="1"/>
+  <text x="235" y="156" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Voice Module</text>
+  <text x="235" y="172" text-anchor="middle" fill="#888" font-size="9">VoiceModule.tsx</text>
+  <text x="235" y="186" text-anchor="middle" fill="#888" font-size="9">Kokoro TTS</text>
+  <text x="235" y="200" text-anchor="middle" fill="#888" font-size="9">Whisper STT</text>
+
+  <!-- Settings -->
+  <rect x="306" y="138" width="118" height="72" rx="7" fill="#1a1a3a" stroke="#6366f1" stroke-width="1"/>
+  <text x="365" y="156" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Settings</text>
+  <text x="365" y="172" text-anchor="middle" fill="#888" font-size="9">SettingsScreen.tsx</text>
+  <text x="365" y="186" text-anchor="middle" fill="#888" font-size="9">model config</text>
+  <text x="365" y="200" text-anchor="middle" fill="#888" font-size="9">agent tuning</text>
+
+  <!-- History -->
+  <rect x="436" y="138" width="118" height="72" rx="7" fill="#1a1a3a" stroke="#6366f1" stroke-width="1"/>
+  <text x="495" y="156" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">History</text>
+  <text x="495" y="172" text-anchor="middle" fill="#888" font-size="9">HistoryScreen.tsx</text>
+  <text x="495" y="186" text-anchor="middle" fill="#888" font-size="9">past sessions</text>
+  <text x="495" y="200" text-anchor="middle" fill="#888" font-size="9">action replay</text>
+
+  <!-- Screen Overlay -->
+  <rect x="566" y="138" width="208" height="72" rx="7" fill="#1a1a3a" stroke="#6366f1" stroke-width="1"/>
+  <text x="670" y="156" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Screen Overlay</text>
+  <text x="670" y="172" text-anchor="middle" fill="#888" font-size="9">AgentOverlay.tsx</text>
+  <text x="670" y="186" text-anchor="middle" fill="#888" font-size="9">floating action feed</text>
+  <text x="670" y="200" text-anchor="middle" fill="#888" font-size="9">real-time step log</text>
+
+  <!-- Arrow: Deft App → device-agent -->
+  <line x1="410" y1="222" x2="410" y2="242" stroke="#4ADE80" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="420" y="235" fill="#4ADE80" font-size="9">processCommand</text>
+
+  <!-- ── DEVICE-AGENT ── -->
+  <rect x="80" y="246" width="660" height="112" rx="10" fill="#0d1f0d" stroke="#4ADE80" stroke-width="1.5"/>
+  <text x="100" y="264" fill="#4ADE80" font-size="11" font-weight="700" letter-spacing="0.5">REACT-NATIVE-DEVICE-AGENT</text>
+
+  <!-- AgentLoop -->
+  <rect x="96" y="272" width="170" height="74" rx="7" fill="#0f2a0f" stroke="#4ADE80" stroke-width="1"/>
+  <text x="181" y="292" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">AgentLoop</text>
+  <text x="181" y="308" text-anchor="middle" fill="#4ADE80" font-size="9">Observe → Reason → Act</text>
+  <text x="181" y="322" text-anchor="middle" fill="#888" font-size="9">step budget · timeout</text>
+  <text x="181" y="336" text-anchor="middle" fill="#888" font-size="9">history · retries</text>
+
+  <!-- TaskPlanner -->
+  <rect x="278" y="272" width="160" height="74" rx="7" fill="#0f2a0f" stroke="#4ADE80" stroke-width="1"/>
+  <text x="358" y="292" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">TaskPlanner</text>
+  <text x="358" y="308" text-anchor="middle" fill="#888" font-size="9">multi-step decompose</text>
+  <text x="358" y="322" text-anchor="middle" fill="#888" font-size="9">LLM subtask split</text>
+  <text x="358" y="336" text-anchor="middle" fill="#888" font-size="9">sequential execution</text>
+
+  <!-- Tool Registry -->
+  <rect x="450" y="272" width="150" height="74" rx="7" fill="#0f2a0f" stroke="#4ADE80" stroke-width="1"/>
+  <text x="525" y="292" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Tool Registry</text>
+  <text x="525" y="308" text-anchor="middle" fill="#888" font-size="9">22 phone tools</text>
+  <text x="525" y="322" text-anchor="middle" fill="#888" font-size="9">tap · swipe · type</text>
+  <text x="525" y="336" text-anchor="middle" fill="#888" font-size="9">open_app · find_node</text>
+
+  <!-- Cloud Provider -->
+  <rect x="612" y="272" width="118" height="74" rx="7" fill="#0f2a0f" stroke="#4ADE80" stroke-width="1"/>
+  <text x="671" y="292" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Cloud Provider</text>
+  <text x="671" y="308" text-anchor="middle" fill="#888" font-size="9">Anthropic · OpenAI</text>
+  <text x="671" y="322" text-anchor="middle" fill="#888" font-size="9">OpenRouter</text>
+  <text x="671" y="336" text-anchor="middle" fill="#888" font-size="9">optional fallback</text>
+
+  <!-- Arrow: AgentLoop → a11y-ctrl -->
+  <line x1="180" y1="358" x2="200" y2="390" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+  <text x="170" y="380" fill="#f59e0b" font-size="9" text-anchor="middle">getTree · tap</text>
+
+  <!-- Arrow: AgentLoop → executorch -->
+  <line x1="260" y1="358" x2="490" y2="390" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+  <text x="390" y="382" fill="#a855f7" font-size="9">generate / generateWithTools</text>
+
+  <!-- Arrow: Cloud Provider → Cloud API -->
+  <line x1="671" y1="358" x2="730" y2="390" stroke="#555" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+  <!-- ── A11Y-CONTROLLER ── -->
+  <rect x="30" y="394" width="320" height="106" rx="10" fill="#1f1a0d" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="50" y="412" fill="#f59e0b" font-size="11" font-weight="700" letter-spacing="0.5">REACT-NATIVE-ACCESSIBILITY-CONTROLLER</text>
+
+  <!-- A11y Bridge -->
+  <rect x="46" y="420" width="145" height="68" rx="7" fill="#2a2010" stroke="#f59e0b" stroke-width="1"/>
+  <text x="118" y="440" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">A11y Bridge</text>
+  <text x="118" y="456" text-anchor="middle" fill="#888" font-size="9">readAccessibilityTree</text>
+  <text x="118" y="470" text-anchor="middle" fill="#888" font-size="9">performAction</text>
+  <text x="118" y="484" text-anchor="middle" fill="#888" font-size="9">waitForNode</text>
+
+  <!-- Overlay Manager -->
+  <rect x="200" y="420" width="140" height="68" rx="7" fill="#2a2010" stroke="#f59e0b" stroke-width="1"/>
+  <text x="270" y="440" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Overlay Manager</text>
+  <text x="270" y="456" text-anchor="middle" fill="#888" font-size="9">showOverlay</text>
+  <text x="270" y="470" text-anchor="middle" fill="#888" font-size="9">updateOverlay</text>
+  <text x="270" y="484" text-anchor="middle" fill="#888" font-size="9">system window layer</text>
+
+  <!-- Arrow: A11y Bridge → Android A11y Service -->
+  <line x1="118" y1="500" x2="118" y2="530" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+  <!-- ── EXECUTORCH ── -->
+  <rect x="380" y="394" width="360" height="106" rx="10" fill="#1a0d1f" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="400" y="412" fill="#a855f7" font-size="11" font-weight="700" letter-spacing="0.5">REACT-NATIVE-EXECUTORCH</text>
+
+  <!-- Gemma 4 -->
+  <rect x="396" y="420" width="100" height="68" rx="7" fill="#250d30" stroke="#a855f7" stroke-width="1"/>
+  <text x="446" y="440" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Gemma 4</text>
+  <text x="446" y="456" text-anchor="middle" fill="#888" font-size="9">E4B · E2B</text>
+  <text x="446" y="470" text-anchor="middle" fill="#888" font-size="9">4 billion params</text>
+  <text x="446" y="484" text-anchor="middle" fill="#888" font-size="9">function calling</text>
+
+  <!-- Whisper -->
+  <rect x="506" y="420" width="100" height="68" rx="7" fill="#250d30" stroke="#a855f7" stroke-width="1"/>
+  <text x="556" y="440" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Whisper STT</text>
+  <text x="556" y="456" text-anchor="middle" fill="#888" font-size="9">tiny-en-q8</text>
+  <text x="556" y="470" text-anchor="middle" fill="#888" font-size="9">≈40 MB</text>
+  <text x="556" y="484" text-anchor="middle" fill="#888" font-size="9">16 kHz PCM</text>
+
+  <!-- Kokoro -->
+  <rect x="616" y="420" width="114" height="68" rx="7" fill="#250d30" stroke="#a855f7" stroke-width="1"/>
+  <text x="673" y="440" text-anchor="middle" fill="#e5e5e5" font-size="11" font-weight="600">Kokoro TTS</text>
+  <text x="673" y="456" text-anchor="middle" fill="#888" font-size="9">small + af_heart</text>
+  <text x="673" y="470" text-anchor="middle" fill="#888" font-size="9">≈60 MB</text>
+  <text x="673" y="484" text-anchor="middle" fill="#888" font-size="9">22050 Hz output</text>
+
+  <!-- Arrow: ExecuTorch label (bottom of box) -->
+  <text x="560" y="514" text-anchor="middle" fill="#a855f7" font-size="9" font-weight="600">ExecuTorch Runtime — CPU / GPU delegate</text>
+
+  <!-- ── ANDROID A11Y SERVICE ── -->
+  <rect x="30" y="534" width="210" height="52" rx="8" fill="#1a1a1a" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="135" y="556" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">Android AccessibilityService</text>
+  <text x="135" y="570" text-anchor="middle" fill="#888" font-size="9">reads UI tree of any foreground app</text>
+
+  <!-- Arrow: Android A11y → Any App -->
+  <line x1="135" y1="586" x2="135" y2="614" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+  <text x="180" y="605" fill="#f59e0b" font-size="9">reads + controls</text>
+
+  <!-- ── ANY APP ── -->
+  <rect x="50" y="618" width="170" height="46" rx="8" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+  <text x="135" y="638" text-anchor="middle" fill="#e5e5e5" font-size="12" font-weight="600">📱 Any App</text>
+  <text x="135" y="654" text-anchor="middle" fill="#888" font-size="9">Settings · Gmail · Maps · …</text>
+
+  <!-- ── CLOUD API ── -->
+  <rect x="690" y="394" width="120" height="68" rx="8" fill="#1a1a1a" stroke="#555" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="750" y="416" text-anchor="middle" fill="#aaa" font-size="10" font-weight="600">☁️ Cloud API</text>
+  <text x="750" y="432" text-anchor="middle" fill="#888" font-size="9">Anthropic</text>
+  <text x="750" y="446" text-anchor="middle" fill="#888" font-size="9">OpenAI</text>
+  <text x="750" y="460" text-anchor="middle" fill="#888" font-size="9">OpenRouter</text>
+
+  <!-- "optional" label on cloud -->
+  <text x="750" y="478" text-anchor="middle" fill="#555" font-size="8" font-style="italic">optional fallback</text>
+
+  <!-- Legend -->
+  <text x="30" y="670" fill="#555" font-size="9">All inference runs on-device. No data leaves your phone unless cloud fallback is enabled.</text>
+</svg>
