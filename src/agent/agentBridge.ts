@@ -11,11 +11,16 @@
  * react-native-accessibility-controller are not linked (simulator, tests).
  */
 
-import { Vibration } from 'react-native';
+import { AppState, Vibration } from 'react-native';
 import {
   addMessage,
   updateMessage,
 } from '../store/chatStore';
+import {
+  startForegroundService,
+  stopForegroundService,
+  updateForegroundService,
+} from './foregroundService';
 import { getSettings } from '../store/settingsStore';
 import { addSession, type SessionOutcome } from '../store/historyStore';
 import { agentActioned, agentStarted, agentStepped, agentStopped } from '../store/agentStore';
@@ -39,6 +44,14 @@ export function stopAgent(): void {
   _activePlanner?.abort();
 }
 
+// Guard: when the app returns to foreground while the agent has already finished,
+// ensure the foreground service notification is cleaned up if still lingering.
+AppState.addEventListener('change', (nextState) => {
+  if (nextState === 'active' && _stopped) {
+    stopForegroundService();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -48,6 +61,8 @@ export async function processCommand(command: string): Promise<void> {
   agentStarted(command, getSettings().maxSteps);
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
   const startedAt = Date.now();
+
+  startForegroundService(command);
 
   let outcome: SessionOutcome = 'complete';
   let actions: string[] = [];
@@ -63,6 +78,7 @@ export async function processCommand(command: string): Promise<void> {
     summary = `Error: ${err instanceof Error ? err.message : String(err)}`;
     updateMessage(thinkingMsg.id, { text: summary, pending: false });
   } finally {
+    stopForegroundService();
     agentStopped();
   }
 
@@ -178,6 +194,7 @@ async function runRealAgentLoop(
     } else if (event.type === 'observation') {
       addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
       agentStepped(event.step, event.screenState);
+      updateForegroundService(event.step);
     } else if (event.type === 'thinking' && event.content) {
       // Show live thinking content in the pending bubble (truncated for space).
       const preview = event.content.length > 120
@@ -307,6 +324,7 @@ async function runRealPlannerLoop(
         agentActioned();
       } else if (inner.type === 'observation') {
         agentStepped(inner.step, inner.screenState);
+        updateForegroundService(inner.step);
       } else if (inner.type === 'thinking' && inner.content) {
         const preview = inner.content.length > 80
           ? inner.content.slice(0, 77) + '…'
