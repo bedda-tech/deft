@@ -34,6 +34,71 @@ let _stopped = false;
 let _activePlanner: { abort: () => void } | null = null;
 let _activeLoop: { abort: () => void } | null = null;
 
+// ---------------------------------------------------------------------------
+// Resumable task persistence
+// ---------------------------------------------------------------------------
+
+const RESUMABLE_KEY = 'deft:resumableTask';
+const RESUMABLE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+export interface ResumableTask {
+  task: string;
+  steps: string[];
+  startedAt: number;
+}
+
+// Tracks the active task so action handlers can append steps.
+let _resumableTask: ResumableTask | null = null;
+
+function _getAsyncStorage(): {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+} | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('@react-native-async-storage/async-storage').default;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadResumableTask(): Promise<ResumableTask | null> {
+  try {
+    const storage = _getAsyncStorage();
+    if (!storage) return null;
+    const raw = await storage.getItem(RESUMABLE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ResumableTask;
+    if (Date.now() - parsed.startedAt > RESUMABLE_TTL_MS) {
+      void storage.removeItem(RESUMABLE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearResumableTask(): Promise<void> {
+  try {
+    await _getAsyncStorage()?.removeItem(RESUMABLE_KEY);
+  } catch { /* ignore */ }
+}
+
+function _saveResumableTask(t: ResumableTask): void {
+  try {
+    void _getAsyncStorage()?.setItem(RESUMABLE_KEY, JSON.stringify(t));
+  } catch { /* ignore */ }
+}
+
+function _recordStep(actionText: string): void {
+  if (_resumableTask) {
+    _resumableTask.steps.push(actionText);
+    _saveResumableTask(_resumableTask);
+  }
+}
+
 /**
  * Signal the agent to stop after its current step.
  * Also aborts the active AgentLoop or TaskPlanner immediately.
@@ -62,6 +127,9 @@ export async function processCommand(command: string): Promise<void> {
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
   const startedAt = Date.now();
 
+  _resumableTask = { task: command, steps: [], startedAt };
+  _saveResumableTask(_resumableTask);
+
   startForegroundService(command);
 
   let outcome: SessionOutcome = 'complete';
@@ -80,6 +148,8 @@ export async function processCommand(command: string): Promise<void> {
   } finally {
     stopForegroundService();
     agentStopped();
+    _resumableTask = null;
+    void clearResumableTask();
   }
 
   addSession(command, actions, outcome, summary, Date.now() - startedAt);
@@ -191,6 +261,7 @@ async function runRealAgentLoop(
       addMessage('agent', 'action', text);
       actions.push(text);
       agentActioned();
+      _recordStep(text);
     } else if (event.type === 'observation') {
       addMessage('agent', 'screen', `Step ${event.step} — screen updated`);
       agentStepped(event.step, event.screenState);
@@ -322,6 +393,7 @@ async function runRealPlannerLoop(
         addMessage('agent', 'action', text);
         actions.push(text);
         agentActioned();
+        _recordStep(text);
       } else if (inner.type === 'observation') {
         agentStepped(inner.step, inner.screenState);
         updateForegroundService(inner.step);

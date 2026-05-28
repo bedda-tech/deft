@@ -31,7 +31,13 @@ import {
   clearMessages,
   subscribe,
 } from '../../src/store/chatStore';
-import { processCommand, stopAgent } from '../../src/agent/agentBridge';
+import {
+  processCommand,
+  stopAgent,
+  loadResumableTask,
+  clearResumableTask,
+  type ResumableTask,
+} from '../../src/agent/agentBridge';
 import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
 import { getSettings, subscribeSettings } from '../../src/store/settingsStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
@@ -61,6 +67,7 @@ export function ChatScreen() {
     currentScreenState: null,
     actionCount: 0,
   });
+  const [resumableTask, setResumableTask] = useState<ResumableTask | null>(null);
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const agentStartTimeRef = useRef<number | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -68,6 +75,13 @@ export function ChatScreen() {
   const voiceModeRef = useRef(getSettings().voiceMode);
   // Maps message id → pending state from the previous update, used to detect transitions.
   const prevPendingRef = useRef<Map<string, boolean>>(new Map());
+
+  // Check for an interrupted task on mount.
+  useEffect(() => {
+    loadResumableTask().then((t) => {
+      if (t) setResumableTask(t);
+    });
+  }, []);
 
   // Track the latest ttsEnabled / voiceMode settings without re-subscribing to messages.
   useEffect(() => {
@@ -156,6 +170,26 @@ export function ChatScreen() {
     sendText(text);
   }, [sendText]);
 
+  const handleResumeTask = useCallback(async () => {
+    const t = resumableTask;
+    setResumableTask(null);
+    await clearResumableTask();
+    if (!t) return;
+    // Re-inject prior steps as read-only history messages.
+    if (t.steps.length > 0) {
+      addMessage('agent', 'screen', `Resuming: "${t.task.slice(0, 60)}${t.task.length > 60 ? '…' : ''}"`);
+      for (const step of t.steps) {
+        addMessage('agent', 'action', step);
+      }
+    }
+    await sendText(t.task);
+  }, [resumableTask, sendText]);
+
+  const handleDismissResume = useCallback(async () => {
+    setResumableTask(null);
+    await clearResumableTask();
+  }, []);
+
   // Wire up expo-speech-recognition event listeners. Lazy-required so the app
   // compiles and runs in environments where the native module isn't linked.
   useEffect(() => {
@@ -210,6 +244,13 @@ export function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
+        {!agentState.isRunning && resumableTask && (
+          <ResumeBanner
+            task={resumableTask.task}
+            onResume={handleResumeTask}
+            onDismiss={handleDismissResume}
+          />
+        )}
         {messages.length === 0 ? (
           <EmptyState onSuggestion={handleSuggestion} />
         ) : (
@@ -290,6 +331,38 @@ function AgentStatusBar({
       <TouchableOpacity onPress={onStop} style={styles.stopButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Resume banner (shown when an interrupted task is found on boot)
+// ---------------------------------------------------------------------------
+
+function ResumeBanner({
+  task,
+  onResume,
+  onDismiss,
+}: {
+  task: string;
+  onResume: () => void;
+  onDismiss: () => void;
+}) {
+  const label = task.length > 60 ? task.slice(0, 60) + '…' : task;
+  return (
+    <View style={styles.resumeBanner}>
+      <Text style={styles.resumeText} numberOfLines={2}>
+        Resume interrupted task?{'\n'}
+        <Text style={styles.resumeTaskLabel}>"{label}"</Text>
+      </Text>
+      <View style={styles.resumeButtons}>
+        <TouchableOpacity style={styles.resumeBtn} onPress={onResume} activeOpacity={0.75}>
+          <Text style={styles.resumeBtnText}>Resume</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissBtn} onPress={onDismiss} activeOpacity={0.75}>
+          <Text style={styles.dismissBtnText}>Dismiss</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -892,5 +965,56 @@ const styles = StyleSheet.create({
   // Disabled text input
   textInputDisabled: {
     opacity: 0.5,
+  },
+
+  // Resume banner
+  resumeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#0d1a2e',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a3a5a',
+    gap: 12,
+  },
+  resumeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#93c5fd',
+    lineHeight: 18,
+  },
+  resumeTaskLabel: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  resumeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  resumeBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#1d4ed8',
+  },
+  resumeBtnText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  dismissBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#1a2a3a',
+    borderWidth: 1,
+    borderColor: '#2a4a6a',
+  },
+  dismissBtnText: {
+    fontSize: 12,
+    color: '#60a5fa',
+    fontWeight: '500',
   },
 });
