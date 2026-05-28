@@ -15,6 +15,7 @@ interface DeftAgentModuleType {
   startService(taskDescription: string): void;
   updateNotification(taskDescription: string, stepCount: number): void;
   stopService(): void;
+  completeTask(result: string, success: boolean): void;
 }
 
 const module: DeftAgentModuleType | undefined =
@@ -40,4 +41,15 @@ export function stopForegroundService(): void {
   _serviceRunning = false;
   _activeTask = '';
   module.stopService();
+}
+
+/**
+ * Stop the foreground service and post a dismissable result notification.
+ * Only has effect on Android when the service is running; no-op otherwise.
+ */
+export function completeForegroundService(result: string, success: boolean): void {
+  if (!module || !_serviceRunning) return;
+  _serviceRunning = false;
+  _activeTask = '';
+  module.completeTask(result, success);
 }

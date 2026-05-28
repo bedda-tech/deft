@@ -45,4 +45,14 @@ class DeftAgentModule(private val reactContext: ReactApplicationContext) :
         }
         reactContext.startService(intent)
     }
+
+    @ReactMethod
+    fun completeTask(result: String, success: Boolean) {
+        val intent = Intent(reactContext, DeftAgentService::class.java).apply {
+            action = DeftAgentService.ACTION_COMPLETE
+            putExtra(DeftAgentService.EXTRA_DESCRIPTION, result)
+            putExtra(DeftAgentService.EXTRA_SUCCESS, success)
+        }
+        reactContext.startService(intent)
+    }
 }

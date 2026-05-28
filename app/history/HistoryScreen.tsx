@@ -10,7 +10,7 @@
  * Sessions are persisted to AsyncStorage (up to 100) and restored on startup.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   LayoutAnimation,
@@ -19,6 +19,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   UIManager,
   View,
@@ -37,11 +38,31 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+type OutcomeFilter = 'all' | SessionOutcome;
+
 export function HistoryScreen() {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
 
   useEffect(() => subscribeSessions(setSessions), []);
+
+  const filteredSessions = useMemo(() => {
+    let result = sessions;
+    if (outcomeFilter !== 'all') {
+      result = result.filter((s) => s.outcome === outcomeFilter);
+    }
+    const q = searchText.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (s) =>
+          s.command.toLowerCase().includes(q) ||
+          (s.summary?.toLowerCase().includes(q) ?? false),
+      );
+    }
+    return result;
+  }, [sessions, searchText, outcomeFilter]);
 
   const handleClear = useCallback(() => {
     setSelectedId(null);
@@ -57,6 +78,8 @@ export function HistoryScreen() {
     removeSession(id);
   }, []);
 
+  const isFiltered = searchText.trim().length > 0 || outcomeFilter !== 'all';
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -68,11 +91,41 @@ export function HistoryScreen() {
         )}
       </View>
 
+      {sessions.length > 0 && (
+        <View style={styles.filterArea}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search commands…"
+            placeholderTextColor="#444"
+            value={searchText}
+            onChangeText={setSearchText}
+            clearButtonMode="while-editing"
+            returnKeyType="search"
+          />
+          <View style={styles.chips}>
+            {(['all', 'complete', 'stopped', 'error'] as OutcomeFilter[]).map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.chip, outcomeFilter === f && styles.chipActive]}
+                onPress={() => setOutcomeFilter(f)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipText, outcomeFilter === f && styles.chipTextActive]}>
+                  {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
       {sessions.length === 0 ? (
         <EmptyState />
+      ) : filteredSessions.length === 0 ? (
+        <NoResultsState isFiltered={isFiltered} />
       ) : (
         <FlatList
-          data={sessions}
+          data={filteredSessions}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => (
             <SessionRow
@@ -84,6 +137,13 @@ export function HistoryScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            isFiltered ? (
+              <Text style={styles.resultCount}>
+                {filteredSessions.length} {filteredSessions.length === 1 ? 'result' : 'results'}
+              </Text>
+            ) : null
+          }
         />
       )}
     </SafeAreaView>
@@ -223,7 +283,7 @@ function ActionList({ actions, expanded }: { actions: string[]; expanded: boolea
 }
 
 // ---------------------------------------------------------------------------
-// Empty state
+// Empty / no-results states
 // ---------------------------------------------------------------------------
 
 function EmptyState() {
@@ -233,6 +293,20 @@ function EmptyState() {
       <Text style={styles.emptyHeadline}>No sessions yet</Text>
       <Text style={styles.emptySubtext}>
         Your past agent sessions will appear here after you run a command.
+      </Text>
+    </View>
+  );
+}
+
+function NoResultsState({ isFiltered }: { isFiltered: boolean }) {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyIcon}>🔍</Text>
+      <Text style={styles.emptyHeadline}>No results</Text>
+      <Text style={styles.emptySubtext}>
+        {isFiltered
+          ? 'Try a different search term or filter.'
+          : 'No sessions match your filter.'}
       </Text>
     </View>
   );
@@ -301,6 +375,53 @@ const styles = StyleSheet.create({
   headerClear: {
     fontSize: 14,
     color: '#555',
+  },
+
+  // Filter area
+  filterArea: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  searchInput: {
+    backgroundColor: '#161616',
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: '#e5e5e5',
+    fontSize: 14,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: '#161616',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  chipActive: {
+    backgroundColor: '#1a2a1a',
+    borderColor: '#4ADE8044',
+  },
+  chipText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  chipTextActive: {
+    color: '#4ADE80',
+  },
+  resultCount: {
+    fontSize: 12,
+    color: '#444',
+    paddingBottom: 4,
   },
 
   listContent: {

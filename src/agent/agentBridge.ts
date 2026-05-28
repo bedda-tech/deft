@@ -17,6 +17,7 @@ import {
   updateMessage,
 } from '../store/chatStore';
 import {
+  completeForegroundService,
   startForegroundService,
   stopForegroundService,
   updateForegroundService,
@@ -146,7 +147,11 @@ export async function processCommand(command: string): Promise<void> {
     summary = `Error: ${err instanceof Error ? err.message : String(err)}`;
     updateMessage(thinkingMsg.id, { text: summary, pending: false });
   } finally {
-    stopForegroundService();
+    if (_stopped) {
+      stopForegroundService();
+    } else {
+      completeForegroundService(summary, outcome === 'complete');
+    }
     agentStopped();
     _resumableTask = null;
     void clearResumableTask();
