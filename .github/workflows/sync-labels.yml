@@ -6,6 +6,9 @@ on:
     paths: ['.github/labels.yml']
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   sync:
     runs-on: ubuntu-latest
