@@ -87,6 +87,12 @@ export interface Settings {
    * Parsed at run-time; invalid JSON is silently ignored (falls back to {}).
    */
   contextJson: string;
+  /**
+   * User-saved quick-access commands shown in the chat empty state.
+   * Displayed as tappable chips; empty means the hardcoded example commands
+   * are shown instead.
+   */
+  savedCommands: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -109,6 +115,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ttsEnabled: false,
   voiceMode: false,
   contextJson: '',
+  savedCommands: [],
 };
 
 const SETTINGS_KEY = '@deft/settings';

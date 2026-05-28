@@ -39,7 +39,7 @@ import {
   type ResumableTask,
 } from '../../src/agent/agentBridge';
 import { subscribeAgentState, type AgentState } from '../../src/store/agentStore';
-import { getSettings, subscribeSettings } from '../../src/store/settingsStore';
+import { getSettings, saveSettings, subscribeSettings } from '../../src/store/settingsStore';
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 import { speakText, stopSpeech } from '../../src/voice/voiceBridge';
 import { usePushToTalk, type PTTState } from '../../src/hooks/useVoice';
@@ -68,6 +68,7 @@ export function ChatScreen() {
     actionCount: 0,
   });
   const [resumableTask, setResumableTask] = useState<ResumableTask | null>(null);
+  const [savedCommands, setSavedCommands] = useState<string[]>(getSettings().savedCommands);
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const agentStartTimeRef = useRef<number | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -89,6 +90,7 @@ export function ChatScreen() {
       voiceModeRef.current = s.voiceMode;
       ttsEnabledRef.current = s.ttsEnabled || s.voiceMode;
       setVoiceMode(s.voiceMode);
+      setSavedCommands(s.savedCommands);
     });
   }, []);
 
@@ -190,6 +192,16 @@ export function ChatScreen() {
     await clearResumableTask();
   }, []);
 
+  const handleSaveCommand = useCallback((text: string) => {
+    const current = getSettings().savedCommands;
+    if (current.includes(text)) {
+      ToastAndroid.show('Already saved', ToastAndroid.SHORT);
+      return;
+    }
+    void saveSettings({ savedCommands: [...current, text] });
+    ToastAndroid.show('Command saved', ToastAndroid.SHORT);
+  }, []);
+
   // Wire up expo-speech-recognition event listeners. Lazy-required so the app
   // compiles and runs in environments where the native module isn't linked.
   useEffect(() => {
@@ -252,13 +264,13 @@ export function ChatScreen() {
           />
         )}
         {messages.length === 0 ? (
-          <EmptyState onSuggestion={handleSuggestion} />
+          <EmptyState onSuggestion={handleSuggestion} savedCommands={savedCommands} />
         ) : (
           <FlatList
             ref={listRef}
             data={messages}
             keyExtractor={(m) => m.id}
-            renderItem={({ item }) => <MessageBubble message={item} />}
+            renderItem={({ item }) => <MessageBubble message={item} onSaveCommand={handleSaveCommand} />}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />
@@ -371,7 +383,16 @@ function ResumeBanner({
 // Empty state
 // ---------------------------------------------------------------------------
 
-function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) {
+const DEFAULT_SUGGESTIONS = ['Open Settings', 'Send a message to Mom', 'Turn on Wi-Fi'];
+
+function EmptyState({
+  onSuggestion,
+  savedCommands,
+}: {
+  onSuggestion: (text: string) => void;
+  savedCommands: string[];
+}) {
+  const chips = savedCommands.length > 0 ? savedCommands : DEFAULT_SUGGESTIONS;
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIconWrap}>
@@ -382,9 +403,9 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
         Type a command or tap the mic to speak.
       </Text>
       <View style={styles.suggestions}>
-        <SuggestionChip text="Open Settings" onPress={onSuggestion} />
-        <SuggestionChip text="Send a message to Mom" onPress={onSuggestion} />
-        <SuggestionChip text="Turn on Wi-Fi" onPress={onSuggestion} />
+        {chips.map((text) => (
+          <SuggestionChip key={text} text={text} onPress={onSuggestion} />
+        ))}
       </View>
     </View>
   );
@@ -411,7 +432,13 @@ function copyMessageText(text: string): void {
   } catch { /* expo-clipboard not linked */ }
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({
+  message,
+  onSaveCommand,
+}: {
+  message: ChatMessage;
+  onSaveCommand?: (text: string) => void;
+}) {
   const isUser = message.role === 'user';
   const isAction = message.kind === 'action';
   const isScreen = message.kind === 'screen';
@@ -444,10 +471,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   if (isUser) {
     return (
       <View style={[styles.bubbleRow, styles.bubbleRowUser]}>
-        <View style={[styles.bubble, styles.bubbleUser]}>
+        <TouchableOpacity
+          style={[styles.bubble, styles.bubbleUser]}
+          onLongPress={onSaveCommand ? () => onSaveCommand(message.text) : undefined}
+          activeOpacity={1}
+          delayLongPress={400}
+        >
           <Text style={[styles.bubbleText, styles.bubbleTextUser]}>{message.text}</Text>
           {message.pending && <PendingDots />}
-        </View>
+        </TouchableOpacity>
       </View>
     );
   }

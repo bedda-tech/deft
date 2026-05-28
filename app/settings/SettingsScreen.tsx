@@ -357,6 +357,28 @@ export function SettingsScreen() {
           />
         </View>
 
+        {/* ── Quick Commands ── */}
+        {settings.savedCommands.length > 0 && (
+          <>
+            <SectionHeader title="Quick Commands" />
+            <View style={styles.card}>
+              {settings.savedCommands.map((cmd, i) => (
+                <React.Fragment key={cmd}>
+                  {i > 0 && <View style={styles.divider} />}
+                  <SavedCommandRow
+                    text={cmd}
+                    onRemove={() =>
+                      update({ savedCommands: settings.savedCommands.filter((c) => c !== cmd) })
+                    }
+                  />
+                </React.Fragment>
+              ))}
+              <View style={styles.divider} />
+              <SettingDescription text="Long-press any message you've sent in chat to save it as a quick-access chip on the home screen." />
+            </View>
+          </>
+        )}
+
         {/* ── Reset ── */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset} activeOpacity={0.7}>
           <Text style={styles.resetButtonText}>Reset to Defaults</Text>
@@ -598,6 +620,21 @@ function ContextJsonInput({
       returnKeyType="default"
       textAlignVertical="top"
     />
+  );
+}
+
+function SavedCommandRow({ text, onRemove }: { text: string; onRemove: () => void }) {
+  return (
+    <View style={styles.savedCmdRow}>
+      <Text style={styles.savedCmdText} numberOfLines={1}>{text}</Text>
+      <TouchableOpacity
+        onPress={onRemove}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        activeOpacity={0.6}
+      >
+        <Text style={styles.savedCmdRemove}>✕</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -924,5 +961,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF6B6B',
     fontWeight: '500',
+  },
+
+  // Saved command row
+  savedCmdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  savedCmdText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#ccc',
+  },
+  savedCmdRemove: {
+    fontSize: 14,
+    color: '#555',
   },
 });

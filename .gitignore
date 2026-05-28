@@ -42,3 +42,7 @@ yarn-error.*
 
 # EAS secrets (service account keys)
 .eas/*.json
+
+# Lock files for non-primary package managers (project uses npm / package-lock.json)
+pnpm-lock.yaml
+yarn.lock
