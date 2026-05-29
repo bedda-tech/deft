@@ -9,7 +9,7 @@
  * All methods are no-ops on iOS and when the native module isn't linked (simulator / tests).
  */
 
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 
 interface DeftAgentModuleType {
   startService(taskDescription: string): void;
@@ -23,9 +23,22 @@ const module: DeftAgentModuleType | undefined =
 
 let _activeTask = '';
 let _serviceRunning = false;
+let _notificationPermissionRequested = false;
+
+/**
+ * Request POST_NOTIFICATIONS permission on Android 13+ (API 33).
+ * Safe to call multiple times — skips if already requested this session.
+ */
+export function requestNotificationPermission(): void {
+  if (Platform.OS !== 'android' || _notificationPermissionRequested) return;
+  if ((Platform.Version as number) < 33) return;
+  _notificationPermissionRequested = true;
+  void PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+}
 
 export function startForegroundService(taskDescription: string): void {
   if (!module || _serviceRunning) return;
+  requestNotificationPermission();
   _activeTask = taskDescription;
   _serviceRunning = true;
   module.startService(taskDescription);
