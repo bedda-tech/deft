@@ -475,21 +475,24 @@ function resolveToolFilter(preset: string): string[] | undefined {
       default: return undefined;
     }
   } catch {
-    // device-agent not linked — fall back to hardcoded lists
+    // device-agent not linked — fall back to hardcoded lists (keep in sync with PHONE_TOOL_PRESETS)
     switch (preset) {
       case 'navigation':
         return ['tap', 'long_press', 'swipe', 'scroll', 'global_action', 'open_app',
           'list_apps', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
-          'get_node_text', 'get_bounds', 'set_checked', 'read_screen'];
+          'wait_for_change', 'get_node_text', 'get_bounds', 'set_checked',
+          'read_screen', 'write_note', 'read_note'];
       case 'text_input':
         return ['tap', 'type_text', 'clear_text', 'press_enter', 'find_node',
-          'find_all_nodes', 'wait_for_node', 'get_node_text', 'scroll', 'read_screen'];
+          'find_all_nodes', 'wait_for_node', 'wait_for_change', 'get_node_text',
+          'scroll', 'read_screen', 'write_note', 'read_note'];
       case 'read_only':
-        return ['read_screen', 'screenshot', 'list_apps'];
+        return ['read_screen', 'screenshot', 'list_apps', 'write_note', 'read_note'];
       case 'in_app':
         return ['tap', 'long_press', 'type_text', 'clear_text', 'press_enter', 'swipe',
           'scroll', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
-          'get_node_text', 'get_bounds', 'set_checked', 'read_screen', 'screenshot'];
+          'wait_for_change', 'get_node_text', 'get_bounds', 'set_checked',
+          'read_screen', 'screenshot', 'write_note', 'read_note'];
       default:
         return undefined;
     }
