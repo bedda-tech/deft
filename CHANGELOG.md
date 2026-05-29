@@ -7,6 +7,26 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] – 2026-05-29
+
+### Added
+
+**Agent infrastructure**
+- Foreground service keeps the agent alive when the app is backgrounded (Android)
+- Resumable task persistence: interrupted agent tasks are persisted to AsyncStorage and can be resumed after app force-quit or restart
+- POST_NOTIFICATIONS permission is requested on Android 13+ before starting the foreground service
+
+**Chat interface**
+- Quick Commands: save any user message as a tappable chip shown in the empty state; manage saved commands in Settings
+
+**History screen**
+- Search/filter bar to find sessions by text or outcome (Complete / Stopped / Error)
+- Foreground service posts a result notification when an agent task finishes in the background
+
+### Changed
+
+- CI and release workflows upgraded to Node.js 22 (current LTS) with GitHub Actions Node.js 24 runtime opt-in
+
 ## [1.1.0] – 2026-05-26
 
 ### Added
@@ -103,6 +123,7 @@ Initial public release.
 - `.github/workflows/ci.yml`: TypeScript typecheck on every push
 - `.github/workflows/release.yml`: APK build + upload to GitHub Releases on version tags
 
-[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bedda-tech/deft/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bedda-tech/deft/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bedda-tech/deft/releases/tag/v1.0.0
