@@ -9,7 +9,7 @@ import { getSettings } from '../../src/store/settingsStore';
 type OnboardingStep = 'welcome' | 'permissions' | 'overlay' | 'model-download' | 'ready';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: (firstCommand?: string) => void;
 }
 
 /**
@@ -45,6 +45,6 @@ export function OnboardingNavigator({ onComplete }: Props) {
       return <ModelDownloadScreen onNext={() => setStep('ready')} />;
 
     case 'ready':
-      return <ReadyScreen onFinish={onComplete} />;
+      return <ReadyScreen onFinish={(cmd) => onComplete(cmd)} />;
   }
 }

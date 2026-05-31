@@ -19,6 +19,10 @@ export function WelcomeScreen({ onNext }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeStep}>1 of 4</Text>
+        </View>
+
         <View style={styles.iconPlaceholder}>
           <Text style={styles.iconText}>D</Text>
         </View>
@@ -97,6 +101,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 48,
     paddingBottom: 40,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  badgeStep: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600',
   },
   iconPlaceholder: {
     width: 88,

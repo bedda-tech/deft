@@ -26,6 +26,7 @@ type MainTab = 'chat' | 'history' | 'settings';
 export default function App() {
   const [appState, setAppState] = useState<AppState>('loading');
   const [tab, setTab] = useState<MainTab>('chat');
+  const [firstCommand, setFirstCommand] = useState<string | undefined>(undefined);
   const currentModelRef = useRef<'E2B' | 'E4B' | null>(null);
 
   useEffect(() => {
@@ -47,8 +48,9 @@ export default function App() {
     });
   }, []);
 
-  const handleOnboardingComplete = async () => {
+  const handleOnboardingComplete = async (cmd?: string) => {
     await completeOnboarding();
+    if (cmd) setFirstCommand(cmd);
     setAppState('main');
   };
 
@@ -73,7 +75,7 @@ export default function App() {
   return (
     <View style={styles.root}>
       <View style={styles.screen}>
-        {tab === 'chat'     && <ChatScreen />}
+        {tab === 'chat'     && <ChatScreen initialCommand={firstCommand} />}
         {tab === 'history'  && <HistoryScreen />}
         {tab === 'settings' && <SettingsScreen />}
       </View>

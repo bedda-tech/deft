@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 interface Props {
-  onFinish: () => void;
+  onFinish: (firstCommand?: string) => void;
 }
 
 /**
@@ -28,18 +28,27 @@ export function ReadyScreen({ onFinish }: Props) {
 
         <Text style={styles.headline}>You're all set</Text>
         <Text style={styles.subline}>
-          Deft is ready to control your phone. Try a command like:
+          Deft is ready to control your phone. Tap a command to try it now, or start from scratch.
         </Text>
 
         <View style={styles.examples}>
-          <ExampleCommand text={'"Open Chrome and search for the weather"'} />
-          <ExampleCommand text={'"Send a WhatsApp message to Mom saying I\'ll be late"'} />
-          <ExampleCommand text={'"Turn on Do Not Disturb"'} />
+          <ExampleCommand
+            text="Open Chrome and search for the weather"
+            onPress={() => onFinish('Open Chrome and search for the weather')}
+          />
+          <ExampleCommand
+            text="Send a WhatsApp message to Mom saying I'll be late"
+            onPress={() => onFinish("Send a WhatsApp message to Mom saying I'll be late")}
+          />
+          <ExampleCommand
+            text="Turn on Do Not Disturb"
+            onPress={() => onFinish('Turn on Do Not Disturb')}
+          />
         </View>
 
         <View style={styles.spacer} />
 
-        <TouchableOpacity style={styles.button} onPress={onFinish} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.button} onPress={() => onFinish()} activeOpacity={0.85}>
           <Text style={styles.buttonText}>Start using Deft</Text>
         </TouchableOpacity>
       </View>
@@ -47,12 +56,12 @@ export function ReadyScreen({ onFinish }: Props) {
   );
 }
 
-function ExampleCommand({ text }: { text: string }) {
+function ExampleCommand({ text, onPress }: { text: string; onPress: () => void }) {
   return (
-    <View style={styles.exampleCard}>
+    <TouchableOpacity style={styles.exampleCard} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.micDot} />
-      <Text style={styles.exampleText}>{text}</Text>
-    </View>
+      <Text style={styles.exampleText}>{'"'}{text}{'"'}</Text>
+    </TouchableOpacity>
   );
 }
 

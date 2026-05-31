@@ -54,7 +54,11 @@ type RecordingState = PTTState; // alias for tap-toggle SR state
 // Root component
 // ---------------------------------------------------------------------------
 
-export function ChatScreen() {
+interface ChatScreenProps {
+  initialCommand?: string;
+}
+
+export function ChatScreen({ initialCommand }: ChatScreenProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -76,6 +80,12 @@ export function ChatScreen() {
   const voiceModeRef = useRef(getSettings().voiceMode);
   // Maps message id → pending state from the previous update, used to detect transitions.
   const prevPendingRef = useRef<Map<string, boolean>>(new Map());
+
+  // Pre-fill input with first command selected during onboarding.
+  useEffect(() => {
+    if (initialCommand) setInputText(initialCommand);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Check for an interrupted task on mount.
   useEffect(() => {
