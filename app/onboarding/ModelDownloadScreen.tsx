@@ -6,8 +6,12 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Animated,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { downloadModel } from '../../src/agent/modelManager';
+import { saveSettings } from '../../src/store/settingsStore';
 
 interface Props {
   onNext: () => void;
@@ -31,6 +35,9 @@ export function ModelDownloadScreen({ onNext }: Props) {
   const [status, setStatus] = useState<DownloadStatus>('idle');
   const [progress, setProgress] = useState(0); // 0-1
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showCloudMode, setShowCloudMode] = useState(false);
+  const [cloudApiKey, setCloudApiKey] = useState('');
+  const [savingCloud, setSavingCloud] = useState(false);
 
   // Animated width for the progress bar
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -67,91 +74,153 @@ export function ModelDownloadScreen({ onNext }: Props) {
     }
   };
 
+  const saveCloudMode = async () => {
+    if (!cloudApiKey.trim()) return;
+    setSavingCloud(true);
+    await saveSettings({ cloudFallback: true, cloudApiKey: cloudApiKey.trim() });
+    setSavingCloud(false);
+    onNext();
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeStep}>4 of 4</Text>
-        </View>
-
-        <Text style={styles.headline}>Download AI Model</Text>
-        <Text style={styles.subline}>
-          Deft runs {MODEL_NAME} entirely on your phone. Download it once and all
-          inference stays local forever.
-        </Text>
-
-        <View style={styles.modelCard}>
-          <View style={styles.modelRow}>
-            <Text style={styles.modelName}>{MODEL_NAME}</Text>
-            <Text style={styles.modelSize}>{MODEL_SIZE}</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.container}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeStep}>4 of 4</Text>
           </View>
 
-          <View style={styles.specRow}>
-            <Spec label="Parameters" value="4B" />
-            <Spec label="Quantization" value="Q4_K_M" />
-            <Spec label="Context" value="8K tokens" />
-          </View>
+          <Text style={styles.headline}>
+            {showCloudMode ? 'Use Cloud API' : 'Download AI Model'}
+          </Text>
+          <Text style={styles.subline}>
+            {showCloudMode
+              ? 'Enter an API key to run inference in the cloud instead of on-device. You can switch to local later in Settings.'
+              : `Deft runs ${MODEL_NAME} entirely on your phone. Download it once and all inference stays local forever.`}
+          </Text>
 
-          {(status === 'downloading' || status === 'complete') && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressTrack}>
-                <Animated.View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: progressAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0%', '100%'],
-                      }),
-                    },
-                  ]}
-                />
+          {showCloudMode ? (
+            <View style={styles.modelCard}>
+              <Text style={styles.cloudLabel}>API Key</Text>
+              <TextInput
+                style={styles.cloudInput}
+                placeholder="sk-ant-... or sk-..."
+                placeholderTextColor="#555"
+                value={cloudApiKey}
+                onChangeText={setCloudApiKey}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.cloudHint}>
+                Anthropic (claude-sonnet-4-6) or OpenAI (gpt-4o) keys are both supported. Your key is stored locally and never sent to Deft's servers.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.modelCard}>
+              <View style={styles.modelRow}>
+                <Text style={styles.modelName}>{MODEL_NAME}</Text>
+                <Text style={styles.modelSize}>{MODEL_SIZE}</Text>
               </View>
-              <Text style={styles.progressLabel}>
-                {status === 'complete'
-                  ? 'Download complete'
-                  : `${Math.round(progress * 100)}%`}
-              </Text>
+
+              <View style={styles.specRow}>
+                <Spec label="Parameters" value="4B" />
+                <Spec label="Quantization" value="Q4_K_M" />
+                <Spec label="Context" value="8K tokens" />
+              </View>
+
+              {(status === 'downloading' || status === 'complete') && (
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressTrack}>
+                    <Animated.View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressLabel}>
+                    {status === 'complete'
+                      ? 'Download complete'
+                      : `${Math.round(progress * 100)}%`}
+                  </Text>
+                </View>
+              )}
+
+              {status === 'error' && errorMessage && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              )}
             </View>
           )}
 
-          {status === 'error' && errorMessage && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          )}
+          <View style={styles.buttonArea}>
+            {showCloudMode ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.button, !cloudApiKey.trim() && styles.buttonDisabled]}
+                  onPress={saveCloudMode}
+                  activeOpacity={0.85}
+                  disabled={!cloudApiKey.trim() || savingCloud}
+                >
+                  <Text style={[styles.buttonText, !cloudApiKey.trim() && styles.buttonTextDim]}>
+                    {savingCloud ? 'Saving...' : 'Save & Continue'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.skipButton} onPress={() => setShowCloudMode(false)}>
+                  <Text style={styles.skipText}>Back to download</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {status === 'idle' || status === 'error' ? (
+                  <TouchableOpacity style={styles.button} onPress={startDownload} activeOpacity={0.85}>
+                    <Text style={styles.buttonText}>
+                      {status === 'error' ? 'Retry download' : 'Download model'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                {status === 'downloading' && (
+                  <View style={[styles.button, styles.buttonDisabled]}>
+                    <Text style={styles.buttonText}>Downloading...</Text>
+                  </View>
+                )}
+
+                {status === 'complete' && (
+                  <TouchableOpacity style={styles.button} onPress={onNext} activeOpacity={0.85}>
+                    <Text style={styles.buttonText}>Continue</Text>
+                  </TouchableOpacity>
+                )}
+
+                {status !== 'complete' && (
+                  <TouchableOpacity style={styles.skipButton} onPress={onNext}>
+                    <Text style={styles.skipText}>
+                      {status === 'downloading' ? 'Continue in background' : 'Skip for now'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.cloudToggle}
+                  onPress={() => setShowCloudMode(true)}
+                >
+                  <Text style={styles.cloudToggleText}>Use cloud API instead →</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
-
-        <View style={styles.buttonArea}>
-          {status === 'idle' || status === 'error' ? (
-            <TouchableOpacity style={styles.button} onPress={startDownload} activeOpacity={0.85}>
-              <Text style={styles.buttonText}>
-                {status === 'error' ? 'Retry download' : 'Download model'}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {status === 'downloading' && (
-            <View style={[styles.button, styles.buttonDisabled]}>
-              <Text style={styles.buttonText}>Downloading...</Text>
-            </View>
-          )}
-
-          {status === 'complete' && (
-            <TouchableOpacity style={styles.button} onPress={onNext} activeOpacity={0.85}>
-              <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
-          )}
-
-          {status !== 'complete' && (
-            <TouchableOpacity style={styles.skipButton} onPress={onNext}>
-              <Text style={styles.skipText}>
-                {status === 'downloading' ? 'Continue in background' : 'Skip for now'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -169,6 +238,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#0a0a0a',
+  },
+  flex: {
+    flex: 1,
   },
   container: {
     flex: 1,
@@ -309,6 +381,41 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
+    color: '#555',
+  },
+  cloudToggle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  cloudToggleText: {
+    fontSize: 14,
+    color: '#444',
+  },
+  cloudLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  cloudInput: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    color: '#fff',
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  cloudHint: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 20,
+  },
+  buttonTextDim: {
     color: '#555',
   },
 });
