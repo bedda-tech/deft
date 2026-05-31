@@ -316,3 +316,84 @@ The stack: React Native + Kotlin (Android) + ExecuTorch + AccessibilityService.
 Everything is open source. The interesting bits: how we serialize accessibility trees into LLM-friendly text, how the tool call parser handles 4 different output formats, how the hybrid provider degrades gracefully from on-device to cloud.
 
 → github.com/bedda-tech/deft
+
+---
+
+## Thread 5 — Foreground Service & Task Persistence (Week 6-7)
+
+**Post 1/6**
+"Tell Deft to book a flight. Switch apps to check your email. Come back to find the agent dead."
+
+Android kills background JS threads without warning.
+
+v1.2.0 solves this in two layers. 🧵
+
+---
+
+**Post 2/6**
+Layer 1: Android foreground service.
+
+When you start a task, Deft starts `DeftAgentService` — an Android Service that holds a persistent notification.
+
+Android won't kill a foreground service. Your agent keeps running while you use other apps.
+
+The notification shows what Deft is doing in real time.
+
+---
+
+**Post 3/6**
+The Kotlin side is straightforward:
+
+```kotlin
+startForeground(NOTIF_ID, buildNotification("Agent running…"))
+// JS agent loop continues in the React Native thread
+// When task completes:
+completeForegroundService(summary, success = true)
+stopForeground(STOP_FOREGROUND_REMOVE)
+```
+
+Expo managed workflow with no `android/` directory: the service is injected via a config plugin at prebuild time.
+
+---
+
+**Post 4/6**
+Layer 2: AsyncStorage persistence for force-quits.
+
+Foreground services can still be killed by:
+- Force-quit from the recents screen
+- Low memory OOM kill
+- Device restart
+
+So every action step is fire-and-forget saved to AsyncStorage as the agent loop progresses.
+
+```ts
+void saveResumableTask({ task, steps: _steps })
+```
+
+---
+
+**Post 5/6**
+On next launch, Deft checks for a saved task:
+
+```ts
+const pending = await loadResumableTask()
+if (pending) showResumePrompt(pending.task)
+```
+
+Tap "Resume" and it replays your previous actions as context, then picks up where it left off.
+
+The `finally` block in `processCommand` clears the saved task on clean completion — force-quit skips `finally`, so the task survives intentionally.
+
+---
+
+**Post 6/6**
+Two layers. One goal: your agent finishes what you asked it to do.
+
+Foreground service → survives switching apps.
+AsyncStorage persistence → survives force-quit.
+
+All open source:
+→ github.com/bedda-tech/deft
+→ github.com/bedda-tech/react-native-device-agent
+
+Contributors welcome. MIT license.
