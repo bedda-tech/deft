@@ -14,6 +14,11 @@ This is a living document. Feature candidates are research-complete but not comm
 - Result notification when a background task completes
 - EAS build in CI via `expo prebuild` + Gradle (no Expo account required)
 
+## Shipped — v1.3.0
+
+- Web Browsing Tool Preset — `web` preset in `PHONE_TOOL_PRESETS` for Chrome browser-focused tasks
+- Cloud-Only Mode Polish — skip model download in onboarding when a cloud API key is configured; add "Use cloud API instead" option during the model download step
+
 ---
 
 ## v1.3.0 Candidates
@@ -22,10 +27,6 @@ This is a living document. Feature candidates are research-complete but not comm
 
 Document the full engineering cost of supporting iOS: `AccessibilityService` has no direct iOS equivalent, but the Accessibility API (`UIAccessibility`) plus `AXRuntime` (private, requires entitlements) covers partial read access. An investigation issue would clarify what's possible within App Store policy, what requires an enterprise/MDM distribution path, and whether a supervised device mode is a viable first target. Unblocks contributors from exploring without duplicating research.
 
-### Web Browsing Tool Preset
-
-Add a `web` preset to `PHONE_TOOL_PRESETS` in `PhoneTools.ts` containing `open_app`, `tap`, `type_text`, `scroll`, `read_screen`, `find_node`, `wait_for_change`, and `screenshot`. Chrome on Android exposes full accessibility trees (headings, links, inputs, tab bar) — a focused preset avoids sending navigation and note tools to a model that only needs browser controls, which reduces token usage and hallucinations on web-only tasks.
-
 ### Onboarding UX Improvements
 
 The current `ModelDownloadScreen` shows a progress bar but gives no guidance on what tasks Deft can do, what permissions to grant, or how to phrase commands. A guided first-task flow (3 onboarding cards → permission grant → one example task inline) would significantly reduce first-run drop-off for beta users. This is pure TypeScript/React Native — a good first contribution.
@@ -33,10 +34,6 @@ The current `ModelDownloadScreen` shows a progress bar but gives no guidance on 
 ### Gemma 4 Performance Benchmarks
 
 Publish measured inference latency (ms/step) and memory headroom (GB) for a representative set of Android devices: Pixel 6a (mid-range), Pixel 8 (flagship), Galaxy S24 (Snapdragon), and at least one sub-$300 device. Results would go in `docs/benchmarks.md` and the main README. Knowing the hardware floor is the most common question from contributors and potential users.
-
-### Cloud-Only Mode Polish
-
-The settings screen already has OpenAI/Anthropic/OpenRouter selectors and an API key field, but the on-device model download is still required before cloud mode is usable. Decouple cloud mode from model download: skip the model download step in onboarding when `cloudFallback = true` and a valid API key is set. This makes Deft immediately usable on any Android device as a cloud-backed agent — no 2.5 GB download gating access.
 
 ---
 

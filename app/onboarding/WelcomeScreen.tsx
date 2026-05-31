@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * Onboarding step 1: Explain what Deft does.
+ * Onboarding step 1: Explain what Deft does and show concrete command examples.
  */
 export function WelcomeScreen({ onNext }: Props) {
   return (
@@ -28,20 +28,28 @@ export function WelcomeScreen({ onNext }: Props) {
 
         <View style={styles.features}>
           <FeatureRow
-            icon="phone"
             title="Control your phone with words"
-            description="Say 'Open Settings and turn on Wi-Fi' — Deft does it for you."
+            description="Speak or type any task — Deft reads the screen, taps, types, and scrolls for you."
           />
           <FeatureRow
-            icon="lock"
             title="100% private, no cloud"
             description="Gemma 4 runs entirely on your device. No API keys, no data sent anywhere."
           />
           <FeatureRow
-            icon="bolt"
             title="Works with any app"
-            description="Deft reads the screen and taps buttons like a human would."
+            description="Chrome, WhatsApp, Settings, Maps — if you can see it, Deft can control it."
           />
+        </View>
+
+        <View style={styles.examplesSection}>
+          <Text style={styles.examplesLabel}>Try commands like</Text>
+          <View style={styles.examplesGrid}>
+            <CommandChip text="Open Chrome and search for the weather" />
+            <CommandChip text="Send a WhatsApp to Mom: I'll be late" />
+            <CommandChip text="Turn on Do Not Disturb" />
+            <CommandChip text="Set an alarm for 7 AM tomorrow" />
+            <CommandChip text="Open Spotify and play my Liked Songs" />
+          </View>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={onNext} activeOpacity={0.85}>
@@ -56,7 +64,6 @@ function FeatureRow({
   title,
   description,
 }: {
-  icon: string;
   title: string;
   description: string;
 }) {
@@ -67,6 +74,14 @@ function FeatureRow({
         <Text style={styles.featureTitle}>{title}</Text>
         <Text style={styles.featureDescription}>{description}</Text>
       </View>
+    </View>
+  );
+}
+
+function CommandChip({ text }: { text: string }) {
+  return (
+    <View style={styles.chip}>
+      <Text style={styles.chipText}>{'“'}{text}{'”'}</Text>
     </View>
   );
 }
@@ -116,7 +131,7 @@ const styles = StyleSheet.create({
   features: {
     width: '100%',
     gap: 24,
-    marginBottom: 48,
+    marginBottom: 36,
   },
   featureRow: {
     flexDirection: 'row',
@@ -143,6 +158,35 @@ const styles = StyleSheet.create({
   featureDescription: {
     fontSize: 14,
     color: '#999',
+    lineHeight: 20,
+  },
+  examplesSection: {
+    width: '100%',
+    marginBottom: 36,
+  },
+  examplesLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  examplesGrid: {
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: '#141414',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#bbb',
+    fontStyle: 'italic',
     lineHeight: 20,
   },
   button: {
