@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.2] – 2026-05-31
+
+### Changed
+- CI release workflow switched from EAS local build to expo prebuild + Gradle for faster, reproducible APK builds
+
+## [1.2.1] – 2026-05-30
+
+### Fixed
+- foreground service: guard `startForeground` type and `FOREGROUND_SERVICE_IMMEDIATE` behind correct API levels (API 29+/34+) to avoid crashes on older Android
+- agentBridge: sync hardcoded tool preset fallbacks with `PHONE_TOOL_PRESETS` to prevent tool mismatch at runtime
+- CI: add `--local` flag to `eas build` (allow `--output`), add Java 17 setup step for EAS local build
+
 ## [1.2.0] – 2026-05-29
 
 ### Added
@@ -123,7 +135,9 @@ Initial public release.
 - `.github/workflows/ci.yml`: TypeScript typecheck on every push
 - `.github/workflows/release.yml`: APK build + upload to GitHub Releases on version tags
 
-[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/bedda-tech/deft/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/bedda-tech/deft/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/bedda-tech/deft/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bedda-tech/deft/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bedda-tech/deft/releases/tag/v1.0.0
