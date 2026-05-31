@@ -472,6 +472,7 @@ function resolveToolFilter(preset: string): string[] | undefined {
       case 'text_input': return PHONE_TOOL_PRESETS.TEXT_INPUT;
       case 'read_only': return PHONE_TOOL_PRESETS.READ_ONLY;
       case 'in_app': return PHONE_TOOL_PRESETS.IN_APP;
+      case 'web': return PHONE_TOOL_PRESETS.WEB;
       default: return undefined;
     }
   } catch {
@@ -493,6 +494,9 @@ function resolveToolFilter(preset: string): string[] | undefined {
           'scroll', 'find_node', 'find_all_nodes', 'wait', 'wait_for_node',
           'wait_for_change', 'get_node_text', 'get_bounds', 'set_checked',
           'read_screen', 'screenshot', 'write_note', 'read_note'];
+      case 'web':
+        return ['open_app', 'tap', 'type_text', 'press_enter', 'scroll',
+          'read_screen', 'find_node', 'wait_for_change', 'screenshot'];
       default:
         return undefined;
     }

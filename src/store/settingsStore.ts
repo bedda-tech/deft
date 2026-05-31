@@ -16,8 +16,9 @@ export interface Settings {
    * 'text_input' → form-filling: tap + type_text + scroll
    * 'read_only'  → read_screen + screenshot only; no actions
    * 'in_app'     → full interaction within the current app; no open_app / global_action
+   * 'web'        → browser controls only: open_app, tap, type, scroll, read, screenshot
    */
-  toolPreset: 'full' | 'navigation' | 'text_input' | 'read_only' | 'in_app';
+  toolPreset: 'full' | 'navigation' | 'text_input' | 'read_only' | 'in_app' | 'web';
   /** Fall back to a cloud LLM when the local model is unavailable. */
   cloudFallback: boolean;
   /** API key for the cloud provider. */

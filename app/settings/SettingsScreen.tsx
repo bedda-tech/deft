@@ -545,6 +545,7 @@ const TOOL_PRESETS: Array<{ value: Settings['toolPreset']; label: string }> = [
   { value: 'text_input', label: 'Text'    },
   { value: 'read_only',  label: 'Read'    },
   { value: 'in_app',     label: 'In-App'  },
+  { value: 'web',        label: 'Web'     },
 ];
 
 function ToolPresetRow({
