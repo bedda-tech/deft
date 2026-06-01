@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] – 2026-06-01
+
+### Added
+- **Web Browsing Tool Preset** — new `web` preset added to `PHONE_TOOL_PRESETS` in Settings for Chrome browser-focused tasks (commit eb6f0cc)
+- **Cloud-Only Mode in onboarding** — skip model download when a cloud API key is configured; adds "Use cloud API instead" option during the model download step (commit 1cc2c1d)
+
+### Changed
+- **Onboarding UX** — step badge on WelcomeScreen shows which step the user is on; tappable example command chips on ReadyScreen pre-fill the chat input on first launch (commits a64cb7c, 0a441c2)
+
 ## [1.2.2] – 2026-05-31
 
 ### Changed
@@ -135,7 +144,8 @@ Initial public release.
 - `.github/workflows/ci.yml`: TypeScript typecheck on every push
 - `.github/workflows/release.yml`: APK build + upload to GitHub Releases on version tags
 
-[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/bedda-tech/deft/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/bedda-tech/deft/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/bedda-tech/deft/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/bedda-tech/deft/compare/v1.1.0...v1.2.0
