@@ -82,3 +82,7 @@ A fork of the Software Mansion ExecuTorch library with Gemma 4 chat template sup
 4. Each loop iteration: read the accessibility tree → format prompt → call Gemma 4 (or cloud LLM) → parse tool call → execute action → observe result → repeat.
 5. Completed agent text responses are read aloud via Kokoro TTS when voice mode or TTS is enabled.
 6. All inference and phone control happens on-device. No user data leaves the phone (unless cloud fallback is explicitly enabled).
+
+## Agent Patterns
+
+For common multi-step patterns used by the agent (scroll-until-found, waiting for async UI, etc.) see [docs/agent-patterns.md](./agent-patterns.md).
