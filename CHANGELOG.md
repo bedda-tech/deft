@@ -12,6 +12,7 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - **Web Browsing Tool Preset** — new `web` preset added to `PHONE_TOOL_PRESETS` in Settings for Chrome browser-focused tasks (commit eb6f0cc)
 - **Cloud-Only Mode in onboarding** — skip model download when a cloud API key is configured; adds "Use cloud API instead" option during the model download step (commit 1cc2c1d)
+- **TaskPlanner shared context** — each completed subtask's result is forwarded as context to the next AgentLoop (`"Step N result"` keys in the context object), so multi-step tasks are fully aware of prior progress without re-reading the screen (device-agent ce0863d)
 
 ### Changed
 - **Onboarding UX** — step badge on WelcomeScreen shows which step the user is on; tappable example command chips on ReadyScreen pre-fill the chat input on first launch (commits a64cb7c, 0a441c2)
