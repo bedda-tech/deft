@@ -7,6 +7,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.2] – 2026-06-03
+
+### Fixed
+- **Android minSdkVersion** — enforce minSdkVersion 26 via `withAppBuildGradle` config plugin instead of `app.json`, since `android.minSdkVersion` is silently ignored by Expo SDK 50+; fixes Release CI build failure on v1.4.1 (commit 77c1197)
+
 ## [1.4.1] – 2026-06-03
 
 ### Fixed
