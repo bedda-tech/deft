@@ -471,3 +471,87 @@ This is the feature I'm most excited about — an AI agent that runs in the back
 
 → github.com/bedda-tech/deft
 → Full commit: github.com/bedda-tech/deft/commit/2b5e924
+
+---
+
+## Thread 7: Dual-Model AgentLoop
+
+**Post 1/7**
+We split the AI brain in two.
+
+One tiny 270M-param model handles tool dispatch. One 4B-param model handles reasoning.
+
+The result: faster actions on 4GB Android devices, without sacrificing accuracy on complex tasks.
+
+Here's how the Dual-Model AgentLoop works 🧵
+
+---
+
+**Post 2/7**
+The problem with a single LLM for phone control:
+
+Gemma 4 E4B is accurate. But every tool call — "tap this button", "scroll down" — triggers a full reasoning pass.
+
+On a mid-range Android with 4GB RAM, that means 500–800ms per action. Multiply by 10–20 steps and tasks feel sluggish.
+
+---
+
+**Post 3/7**
+The solution: function dispatch vs reasoning are different tasks.
+
+`FunctionGemma 270M` was fine-tuned specifically to map screen context → tool call. It's tiny, fast (~80ms), and surprisingly accurate for dispatch.
+
+`Gemma 4 E4B` handles the hard part: multi-step planning, interpreting ambiguous screens, knowing when to stop.
+
+---
+
+**Post 4/7**
+How it fits in 4GB RAM:
+
+| Component | Peak RAM |
+|-----------|----------|
+| FunctionGemma 270M | ~350 MB |
+| Gemma 4 E4B | ~2.8 GB |
+| Android OS + app | ~0.9 GB |
+| **Total** | **~4.0 GB** |
+
+FunctionGemma is lazy-loaded for each dispatch call. Both models are never resident simultaneously — the 4GB ceiling holds.
+
+Full RAM profile: docs/functiongemma-schema-ram-report.md
+
+---
+
+**Post 5/7**
+The routing logic in `DualModelProvider`:
+
+1. Agent receives a task + screen state
+2. Gemma 4 plans: "I need to tap the search button"
+3. FunctionGemma dispatches: decides the exact tool call + args
+4. If FunctionGemma returns an invalid/low-confidence call → falls back to Gemma 4 for that step
+
+One model thinks. The other acts. Each does what it's good at.
+
+---
+
+**Post 6/7**
+Schema alignment was the hardest part.
+
+FunctionGemma was trained on a specific set of tool schemas. Our `PHONE_TOOLS` registry had drifted — `scroll.nodeId` was `required` in training but `optional` in production.
+
+Fix: normalized the training reference schemas in the executorch fork. Deterministic tool dispatch = fewer hallucinated nodeIds.
+
+Commit: bedda-tech/react-native-executorch@4309a420
+
+---
+
+**Post 7/7**
+Dual-Model AgentLoop is live in `react-native-device-agent`.
+
+The architecture that runs on a $300 Android phone:
+→ 270M params for tool selection
+→ 4B params for reasoning  
+→ Stays within 4GB RAM
+→ Zero cloud dependency
+
+→ github.com/bedda-tech/deft
+→ Benchmark report: github.com/bedda-tech/deft/blob/main/docs/functiongemma-schema-ram-report.md
