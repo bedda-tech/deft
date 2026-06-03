@@ -7,6 +7,13 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] – 2026-06-03
+
+### Added
+- **Watchdog Mode** — slash command `/watch every Nm: <condition>` schedules a recurring background agent check at an interval (minimum 15 min, enforced by Android WorkManager); `/stopwatch` cancels it. New `DeftWatchdogModule.kt` native module, `watchdogBridge.ts` scheduler, and `watchdogStore.ts` persistence layer (commit 2b5e924)
+- **Dual-Model AgentLoop** — `FunctionGemmaProvider` handles tool dispatch at 270 M parameters while `GemmaProvider` (Gemma 4 E4B) handles open-ended reasoning; `DualModelProvider` coordinates both with a `dispatchToolFilter` to stay within the 270 M token budget. Reduces per-step latency on devices with enough RAM (≥ 5–6 GB) to run both models (device-agent commits ad37212, f55af9b)
+- **react-native-accessibility-controller v2 TurboModule** — full migration from legacy ReactPackage to TurboModule; adds `MediaProjection`-based screenshot API as an alternative to `AccessibilityService.takeScreenshot()` (commit 5c91e50)
+
 ## [1.3.0] – 2026-06-01
 
 ### Added
@@ -145,7 +152,8 @@ Initial public release.
 - `.github/workflows/ci.yml`: TypeScript typecheck on every push
 - `.github/workflows/release.yml`: APK build + upload to GitHub Releases on version tags
 
-[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/bedda-tech/deft/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/bedda-tech/deft/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/bedda-tech/deft/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/bedda-tech/deft/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/bedda-tech/deft/compare/v1.2.0...v1.2.1
