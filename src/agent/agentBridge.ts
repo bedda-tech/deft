@@ -26,6 +26,7 @@ import { getSettings } from '../store/settingsStore';
 import { addSession, type SessionOutcome } from '../store/historyStore';
 import { agentActioned, agentStarted, agentStepped, agentStopped } from '../store/agentStore';
 import { getGenerateFn, getGenerateWithImageFn } from './llmBridge';
+import { setAgentBusy } from './watchdogBridge';
 
 // ---------------------------------------------------------------------------
 // Cancellation
@@ -124,6 +125,7 @@ AppState.addEventListener('change', (nextState) => {
 
 export async function processCommand(command: string): Promise<void> {
   _stopped = false;
+  setAgentBusy(true);
   agentStarted(command, getSettings().maxSteps);
   const thinkingMsg = addMessage('agent', 'text', 'Thinking...', { pending: true });
   const startedAt = Date.now();
@@ -153,6 +155,7 @@ export async function processCommand(command: string): Promise<void> {
       completeForegroundService(summary, outcome === 'complete');
     }
     agentStopped();
+    setAgentBusy(false);
     _resumableTask = null;
     void clearResumableTask();
   }

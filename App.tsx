@@ -11,6 +11,7 @@ import { AgentOverlay } from './src/components/AgentOverlay';
 import { VoiceModule } from './src/components/VoiceModule';
 import { unregisterLLM } from './src/agent/llmBridge';
 import { initModel } from './src/agent/modelManager';
+import { restoreWatchdogs } from './src/agent/watchdogBridge';
 
 type AppState = 'loading' | 'onboarding' | 'main';
 type MainTab = 'chat' | 'history' | 'settings';
@@ -34,6 +35,7 @@ export default function App() {
       setAppState(done ? 'main' : 'onboarding');
       currentModelRef.current = settings.model;
       initOnDeviceLLM(settings.model).catch(() => {});
+      restoreWatchdogs();
     });
   }, []);
 

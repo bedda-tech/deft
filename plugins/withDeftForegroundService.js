@@ -87,6 +87,7 @@ function withKotlinFiles(config) {
         'DeftAgentService.kt',
         'DeftAgentModule.kt',
         'DeftAgentPackage.kt',
+        'DeftWatchdogModule.kt',
       ]) {
         fs.copyFileSync(
           path.join(pluginAndroidDir, file),

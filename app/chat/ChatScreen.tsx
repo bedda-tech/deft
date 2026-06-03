@@ -43,6 +43,8 @@ import { getSettings, saveSettings, subscribeSettings } from '../../src/store/se
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 import { speakText, stopSpeech } from '../../src/voice/voiceBridge';
 import { usePushToTalk, type PTTState } from '../../src/hooks/useVoice';
+import { parseWatchCommand, startWatchdog, stopWatchdog } from '../../src/agent/watchdogBridge';
+import { getWatchdogs as _getWatchdogs, type WatchdogConfig } from '../../src/store/watchdogStore';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -167,6 +169,41 @@ export function ChatScreen({ initialCommand }: ChatScreenProps) {
     setInputText('');
     stopSpeech();
     addMessage('user', 'text', trimmed);
+
+    // /watch command: set up a recurring background check.
+    if (trimmed.toLowerCase().startsWith('/watch')) {
+      const parsed = parseWatchCommand(trimmed);
+      if (parsed) {
+        const config = startWatchdog(parsed.task, parsed.intervalMs);
+        const intervalText = parsed.intervalMs >= 3_600_000
+          ? `${Math.round(parsed.intervalMs / 3_600_000)}h`
+          : parsed.intervalMs >= 60_000
+            ? `${Math.round(parsed.intervalMs / 60_000)}m`
+            : `${Math.round(parsed.intervalMs / 1_000)}s`;
+        addMessage('agent', 'text', `Watchdog started (every ${intervalText}): "${config.task}"\nI'll notify you when the condition is met. ID: ${config.id}`);
+      } else {
+        addMessage('agent', 'text', 'Usage: /watch every <N> <m|h|s>: <condition>\nExample: /watch every 5m: my Uber is within 5 minutes');
+      }
+      return;
+    }
+
+    // /stopwatch command: cancel a watchdog by ID.
+    if (trimmed.toLowerCase().startsWith('/stopwatch')) {
+      const id = trimmed.split(/\s+/)[1];
+      if (id) {
+        stopWatchdog(id);
+        addMessage('agent', 'text', `Watchdog ${id} cancelled.`);
+      } else {
+        const active = _getWatchdogs().filter((w: WatchdogConfig) => w.status === 'active');
+        if (active.length === 0) {
+          addMessage('agent', 'text', 'No active watchdogs.');
+        } else {
+          addMessage('agent', 'text', 'Active watchdogs:\n' + active.map((w: WatchdogConfig) => `• ${w.id}: ${w.task}`).join('\n'));
+        }
+      }
+      return;
+    }
+
     await processCommand(trimmed);
   }, []);
 
