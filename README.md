@@ -10,7 +10,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![build](https://img.shields.io/github/actions/workflow/status/bedda-tech/deft/ci.yml?branch=main)](https://github.com/bedda-tech/deft/actions)
-[![version](https://img.shields.io/badge/version-1.2.2-brightgreen.svg)](https://github.com/bedda-tech/deft/releases/tag/v1.2.2)
+[![version](https://img.shields.io/badge/version-1.4.0-brightgreen.svg)](https://github.com/bedda-tech/deft/releases/tag/v1.4.0)
 
 **On-device AI phone agent for Android.** Control your phone with natural language. No cloud, no tether -- everything runs locally.
 
@@ -42,6 +42,43 @@ All inference and phone control happens on-device. No data leaves your phone unl
 - **Model selection** -- choose between Gemma 4 E2B (faster) and E4B (smarter)
 - **Cloud fallback** -- optional cloud LLM for complex tasks
 - **Onboarding** -- guided setup for AccessibilityService permissions and model download
+
+## Watchdog Mode
+
+Watchdog Mode runs the agent on a schedule, checking a condition and acting on it automatically — even when the app is in the background.
+
+### Commands
+
+```
+/watch every 5m: Is the Uber ETA under 3 minutes?
+/stopwatch
+```
+
+- `/watch every <interval>: <condition>` — schedule a periodic check. The agent wakes up, reads the screen, evaluates your condition, and acts if it's met.
+- `/stopwatch` — cancel all active watchdogs.
+
+### Interval examples
+
+| Command | Description |
+|---------|-------------|
+| `/watch every 30s: Is the download finished?` | Poll every 30 seconds |
+| `/watch every 5m: Is the Uber ETA under 3 minutes?` | Check every 5 minutes |
+| `/watch every 1m: Has the price dropped below $200?` | Monitor a price |
+| `/watch every 2m: Did my package status change?` | Track shipping updates |
+
+### How it works
+
+- **Stays alive when backgrounded** — a foreground service holds the process and shows a persistent notification while the watchdog is active.
+- **Persists across restarts** — watchdog schedules are saved to AsyncStorage and restored on app launch. If the app is force-quit, active watchdogs resume automatically.
+- **Multiple watchdogs** — you can have several `/watch` commands running simultaneously. Each has its own interval and condition.
+
+### Use cases
+
+- Wait for an Uber/Lyft to arrive (ETA under 2 minutes → alert)
+- Monitor a download and notify you when it's done
+- Track a price on a shopping app and alert when it drops
+- Watch for a flight status change
+- Poll a chat app and respond when a specific message arrives
 
 ## Screenshots
 
