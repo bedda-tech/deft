@@ -1,5 +1,5 @@
 // @ts-check
-const { withAndroidManifest, withDangerousMod } = require('@expo/config-plugins');
+const { withAndroidManifest, withDangerousMod, withAppBuildGradle } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -125,12 +125,29 @@ function withKotlinFiles(config) {
   ]);
 }
 
+// ─── Step 4: Enforce minSdkVersion 26 ────────────────────────────────────────
+// Expo SDK 50+ dropped android.minSdkVersion from app.json — set it via
+// withAppBuildGradle so the manifest merger accepts react-native-accessibility-controller.
+
+function withMinSdkVersion26(config) {
+  return withAppBuildGradle(config, (cfg) => {
+    // Expo 54 template: minSdk Integer.parseInt(findProperty('android.minSdkVersion') ?: '24')
+    // Bump the fallback default to 26; respects ANDROID_MIN_SDK_VERSION env override if set.
+    cfg.modResults.contents = cfg.modResults.contents.replace(
+      /(minSdk(?:Version)?(?:\s*=\s*|\s+)Integer\.parseInt\(findProperty\('android\.minSdkVersion'\)\s*\?:\s*')(\d+)('\))/,
+      (_, pre, val, post) => `${pre}${Math.max(parseInt(val, 10), 26)}${post}`
+    );
+    return cfg;
+  });
+}
+
 // ─── Compose ──────────────────────────────────────────────────────────────────
 
 /** @type {(config: import('@expo/config-plugins').ExpoConfig) => import('@expo/config-plugins').ExpoConfig} */
 const withDeftForegroundService = (config) => {
   config = withManifest(config);
   config = withKotlinFiles(config);
+  config = withMinSdkVersion26(config);
   return config;
 };
 
