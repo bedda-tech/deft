@@ -397,3 +397,77 @@ All open source:
 → github.com/bedda-tech/react-native-device-agent
 
 Contributors welcome. MIT license.
+
+---
+
+## Thread 6 — Watchdog Mode (Week 7-8)
+
+**Post 1/7**
+Your phone AI can now check things for you every 5 minutes.
+
+Type `/watch every 5m: is my Uber within 5 minutes?` and Deft runs that check automatically — while you do something else.
+
+Here's how it works. 🧵
+
+---
+
+**Post 2/7**
+The command syntax is simple:
+
+```
+/watch every 15m: did my package ship yet?
+/watch every 1h: is there a seat open on the 6pm flight?
+/watch every 30m: has my PR been reviewed?
+```
+
+Deft runs a full agent loop for each tick. Every check is a real task — reads the screen, navigates if needed, evaluates the condition.
+
+---
+
+**Post 3/7**
+The architecture: Android WorkManager.
+
+WorkManager enforces a 15-minute minimum interval (OS constraint). For sub-15-min intervals, we use a self-re-enqueuing OneTimeWorkRequest instead.
+
+Each tick starts a foreground service to survive backgrounding, runs the AgentLoop, then posts a notification with the result.
+
+---
+
+**Post 4/7**
+The busy-guard is the detail that makes it work in practice.
+
+If you've started a manual task, the watchdog tick is a no-op:
+
+```ts
+if (agentBridge.isAgentBusy()) return // skip tick
+```
+
+No interference. The next tick picks up as scheduled.
+
+---
+
+**Post 5/7**
+Persistence across restarts.
+
+Every active watchdog is saved to AsyncStorage with its schedule and condition. On app startup, `restoreWatchdogs()` re-enqueues any that were running.
+
+Kill the app. Restart it. Your watchdog is still running.
+
+---
+
+**Post 6/7**
+Cancel with `/stopwatch`.
+
+The cancellation cancels both the WorkManager job and clears the AsyncStorage entry. No lingering jobs.
+
+One-liner implementation: `watchdogBridge.cancelWatchdog(id)` → `WorkManager.cancelUniqueWork(id)`.
+
+---
+
+**Post 7/7**
+Watchdog Mode is live in `main`.
+
+This is the feature I'm most excited about — an AI agent that runs in the background and tells you when something changes. No polling. No manual checks.
+
+→ github.com/bedda-tech/deft
+→ Full commit: github.com/bedda-tech/deft/commit/2b5e924
