@@ -7,6 +7,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.3] – 2026-06-03
+
+### Fixed
+- **Android minSdkVersion** — config plugin now writes `android.minSdkVersion=26` directly to `android/gradle.properties` (ExpoRootProject reads from there, not from `app/build.gradle`); also passes `-Pandroid.minSdkVersion=26` to Gradle in CI as belt-and-suspenders; fixes Release CI build failure on v1.4.2
+
 ## [1.4.2] – 2026-06-03
 
 ### Fixed

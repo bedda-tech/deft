@@ -1,5 +1,6 @@
 // @ts-check
 const { withAndroidManifest, withDangerousMod, withAppBuildGradle } = require('@expo/config-plugins');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -126,19 +127,34 @@ function withKotlinFiles(config) {
 }
 
 // ─── Step 4: Enforce minSdkVersion 26 ────────────────────────────────────────
-// Expo SDK 50+ dropped android.minSdkVersion from app.json — set it via
-// withAppBuildGradle so the manifest merger accepts react-native-accessibility-controller.
+// ExpoRootProject (Expo SDK 54+) reads minSdk from android.minSdkVersion in
+// gradle.properties, not from app/build.gradle. Write directly to gradle.properties
+// so both ExpoRootProject and the manifest merger see 26.
 
 function withMinSdkVersion26(config) {
-  return withAppBuildGradle(config, (cfg) => {
-    // Expo 54 template: minSdk Integer.parseInt(findProperty('android.minSdkVersion') ?: '24')
-    // Bump the fallback default to 26; respects ANDROID_MIN_SDK_VERSION env override if set.
-    cfg.modResults.contents = cfg.modResults.contents.replace(
-      /(minSdk(?:Version)?(?:\s*=\s*|\s+)Integer\.parseInt\(findProperty\('android\.minSdkVersion'\)\s*\?:\s*')(\d+)('\))/,
-      (_, pre, val, post) => `${pre}${Math.max(parseInt(val, 10), 26)}${post}`
-    );
-    return cfg;
-  });
+  return withDangerousMod(config, [
+    'android',
+    async (cfg) => {
+      const androidDir = cfg.modRequest.platformProjectRoot;
+      const propsPath = path.join(androidDir, 'gradle.properties');
+
+      let content = fs.existsSync(propsPath)
+        ? fs.readFileSync(propsPath, 'utf8')
+        : '';
+
+      if (/^android\.minSdkVersion\s*=/m.test(content)) {
+        content = content.replace(
+          /^(android\.minSdkVersion\s*=\s*)\d+/m,
+          (_, prefix) => `${prefix}26`,
+        );
+      } else {
+        content += '\nandroid.minSdkVersion=26\n';
+      }
+
+      fs.writeFileSync(propsPath, content, 'utf8');
+      return cfg;
+    },
+  ]);
 }
 
 // ─── Compose ──────────────────────────────────────────────────────────────────
