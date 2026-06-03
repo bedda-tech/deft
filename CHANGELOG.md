@@ -7,6 +7,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.1] – 2026-06-03
+
+### Fixed
+- **Android minSdkVersion** — bumped from 24 to 26 to match `react-native-accessibility-controller`, which requires API 26+ for `GestureDescription`-based gesture dispatch; fixes Release CI build failure on v1.4.0 (commit 34c088d)
+
 ## [1.4.0] – 2026-06-03
 
 ### Added
