@@ -7,6 +7,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.4] – 2026-06-04
+
+### Fixed
+- **TurboModule codegen** — apply `com.facebook.react` Gradle plugin in `react-native-accessibility-controller/android/build.gradle` so `generateCodegenArtifactsFromSchema` runs before CMake configure; fixes `CXX1429: add_subdirectory` error on missing codegen JNI directory in Release CI (a11y-controller commit d1d9174)
+
 ## [1.4.3] – 2026-06-03
 
 ### Fixed
