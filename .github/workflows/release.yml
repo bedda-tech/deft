@@ -12,6 +12,8 @@ jobs:
   build-apk:
     name: Build APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       # Checkout deft and its local-file dependencies together so that
       # `npm install` can resolve the `file:../react-native-*` paths.
