@@ -555,3 +555,65 @@ The architecture that runs on a $300 Android phone:
 
 → github.com/bedda-tech/deft
 → Benchmark report: github.com/bedda-tech/deft/blob/main/docs/functiongemma-schema-ram-report.md
+
+---
+
+## Thread 8 — v1.4.x Android Stability Improvements
+
+**Post 1/6**
+Silent crashes. Manifest merger failures. CXX1429 codegen errors.
+
+v1.4.x was a gauntlet of Android build system edge cases.
+
+Here's what we fixed — and why these problems existed in the first place. 🧵
+
+---
+
+**Post 2/6**
+Problem 1: Deft was silently installing on Android 7 devices and crashing at runtime.
+
+`react-native-accessibility-controller` requires API 26+ for `GestureDescription`. But Expo was defaulting the app's minSdkVersion to 24.
+
+Android's manifest merger catches this — but only in CI, after six failed release attempts.
+
+---
+
+**Post 3/6**
+You'd think setting `android.minSdkVersion: 26` in `app.json` would fix it. It doesn't.
+
+Expo SDK 50+ silently ignores that field.
+
+The real fix: a `withAppBuildGradle` config plugin that patches the generated Gradle file directly — replacing the '24' default with '26'.
+
+Now anything below Android 8 gets a clean install-time rejection. No more silent runtime crashes.
+
+---
+
+**Post 4/6**
+Problem 2: `react-native-accessibility-controller` TurboModule broke on React Native 0.81.
+
+The `ActivityEventListener` interface tightened: nullable params → non-nullable. `currentActivity` moved from `ReactContextBaseJavaModule` to `reactApplicationContext.currentActivity`.
+
+Three lines of Kotlin. Buried in 800 lines of Gradle output. Found only because CI caught it.
+
+---
+
+**Post 5/6**
+Problem 3: CXX1429 — CMake couldn't find the generated JNI headers for the TurboModule.
+
+Root cause: the `com.facebook.react` Gradle plugin wasn't applied to the library's `build.gradle`, so `generateCodegenArtifactsFromSchema` never ran before CMake configured.
+
+One line added to `build.gradle`. New Architecture / bridgeless fully supported.
+
+---
+
+**Post 6/6**
+v1.4.4 is the first fully stable build for New Architecture (bridgeless) React Native 0.81:
+
+✓ minSdkVersion 26 enforced at install time (Android 8+ required)
+✓ TurboModule fully bridgeless-compatible
+✓ Codegen artifacts generated correctly
+
+→ github.com/bedda-tech/deft/releases/tag/v1.4.4
+
+If you were hitting crashes on v1.4.x, this is the fix.
