@@ -617,3 +617,90 @@ v1.4.4 is the first fully stable build for New Architecture (bridgeless) React N
 → github.com/bedda-tech/deft/releases/tag/v1.4.4
 
 If you were hitting crashes on v1.4.x, this is the fix.
+
+---
+
+## Thread 9 — TaskPlanner Shared Context + Web Browsing Preset (v1.3.0)
+
+**Post 1/7**
+Most AI agents forget what they just did.
+
+You ask for a multi-step task. Step 1 completes. Step 2 starts with zero memory of step 1.
+
+In v1.3.0 we fixed that. Here's how. 🧵
+
+---
+
+**Post 2/7**
+The problem: `TaskPlanner` decomposes a task into subtasks and runs each via a fresh `AgentLoop`. But fresh loops have no memory of previous steps — so step 2 can't build on step 1's result.
+
+The fix: accumulate subtask results in a `priorResults` map and inject them as context before each loop starts.
+
+---
+
+**Post 3/7**
+The implementation is about 4 lines in `TaskPlanner.ts`:
+
+```ts
+const priorResults: Record<string, string> = {};
+
+// before each subtask:
+const loop = new AgentLoop({
+  ...this.options,
+  context: { ...this.options.context, ...priorResults },
+});
+
+// after each subtask completes:
+priorResults[`Step ${subtask.index + 1} result`] = subtaskResult;
+```
+
+Step 1's summary becomes `"Step 1 result"` in step 2's system context. No extra API calls. No re-reading the screen from scratch.
+
+---
+
+**Post 4/7**
+The other v1.3.0 addition: `PHONE_TOOL_PRESETS.WEB`.
+
+Chrome on Android exposes a full accessibility tree — headings, links, inputs, tab bar. You don't need native browser control to navigate the web; the a11y tree is enough.
+
+But a 22-tool full preset is overkill for web tasks. Most tools (swipe, long_press, list_apps…) are useless inside Chrome.
+
+---
+
+**Post 5/7**
+`PHONE_TOOL_PRESETS.WEB` trims it to 9 tools:
+
+```ts
+WEB: [
+  'open_app',    // launch Chrome
+  'tap',         // follow links, press buttons
+  'type_text',   // search boxes, address bar
+  'press_enter', // submit
+  'scroll',      // page scroll
+  'read_screen', // read DOM via a11y tree
+  'find_node',   // jump to a specific element
+  'wait_for_change',
+  'screenshot',
+]
+```
+
+Fewer tokens in the schema → fewer hallucinated tool calls → faster decisions.
+
+---
+
+**Post 6/7**
+Combined example: "Open Gmail in Chrome, find the unread email from Alice, copy the tracking number into the Notes app."
+
+1. TaskPlanner splits into 3 subtasks.
+2. Step 1 (web preset): open Chrome → Gmail → copy tracking number. Result: "1Z999AA10123456784"
+3. Step 2 (in-app preset): open Notes → paste the tracking number. Context: `"Step 1 result": "1Z999AA10123456784"`.
+
+No clipboard magic. No re-reading the screen. The result flows automatically.
+
+---
+
+**Post 7/7**
+v1.3.0 ships in Deft and is available in `react-native-device-agent` for anyone building on top of it.
+
+→ github.com/bedda-tech/deft
+→ github.com/bedda-tech/react-native-device-agent
