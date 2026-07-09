@@ -685,6 +685,11 @@ function formatAction(tool: string, args: Record<string, unknown>): string {
       return `Get bounds of ${str('nodeId')}`;
     case 'set_checked':
       return `${args.checked ? 'Check' : 'Uncheck'} ${str('nodeId')}`;
+    case 'scroll_until_found': {
+      const query = formatNodeQuery(args);
+      const inNode = str('scrollNodeId') ? ` in ${str('scrollNodeId')}` : '';
+      return `Scroll ${str('direction')} until ${query}${inNode}`;
+    }
     case 'write_note':
       return `Save note "${str('key')}" = "${str('value')}"`;
     case 'read_note':

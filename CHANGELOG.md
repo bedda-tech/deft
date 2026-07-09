@@ -7,6 +7,12 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.5] – 2026-07-06
+
+### Fixed
+- **Release CI** — add `permissions: contents: write` to the Release workflow job so `softprops/action-gh-release` can upload APKs; v1.4.4 Release was created without an APK attachment due to this missing permission (commit f8dcda5)
+- **Chat action labels** — `scroll_until_found` actions now display a human-readable label ("Scroll down until [text="X"]") instead of falling back to the raw argument dump
+
 ## [1.4.4] – 2026-06-04
 
 ### Fixed
