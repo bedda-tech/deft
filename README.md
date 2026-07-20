@@ -54,7 +54,7 @@ Watchdog Mode runs the agent on a schedule, checking a condition and acting on i
 /stopwatch
 ```
 
-- `/watch every <interval>: <condition>` — schedule a periodic check. The agent wakes up, reads the screen, evaluates your condition, and acts if it's met.
+- `/watch every <interval>: <condition>` — schedule a periodic check. The agent wakes up, reads the screen, evaluates your condition, and fires a notification when it's met.
 - `/stopwatch` — cancel all active watchdogs.
 
 ### Interval examples
@@ -79,6 +79,31 @@ Watchdog Mode runs the agent on a schedule, checking a condition and acting on i
 - Track a price on a shopping app and alert when it drops
 - Watch for a flight status change
 - Poll a chat app and respond when a specific message arrives
+
+### Command syntax
+
+The `/watch` command follows this format:
+```
+/watch every [interval] : [condition]
+```
+
+Where:
+- **[interval]** is the time between checks (supports seconds, minutes, or hours)
+  - Examples: `30s`, `5m`, `1h`
+- **[condition]** is a natural language description of what to watch for
+  - Examples: "Uber ETA under 3 minutes", "price below $200", "package status changed"
+
+### Notification system
+
+When a watchdog condition is met, Deft will:
+1. Show a notification with the task description
+2. Display the result in the chat interface
+3. Cancel the watchdog automatically
+
+### Managing watchdogs
+
+- `/stopwatch` - cancel all active watchdogs
+- `/stopwatch [ID]` - cancel a specific watchdog by ID (shown when starting a watchdog)
 
 ## Screenshots
 

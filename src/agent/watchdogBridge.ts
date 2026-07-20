@@ -73,7 +73,7 @@ Do not perform any actions beyond reading the screen.
 // Parse /watch command
 // ---------------------------------------------------------------------------
 
-const WATCH_RE = /^\/watch\s+every\s+(\d+(?:\.\d+)?)\s*(m|min|s|sec|h|hr)\s*[:\-]?\s*/i;
+const WATCH_RE = /^\/watch\s+every\s+(\d+(?:\.\d+)?)\s*(m|min|s|sec|h|hr)\b\s*[:\-]?\s*/i;
 
 export interface ParsedWatchCommand {
   intervalMs: number;
