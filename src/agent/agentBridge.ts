@@ -12,6 +12,7 @@
  */
 
 import { AppState, Vibration } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import {
   addMessage,
   updateMessage,
@@ -264,6 +265,7 @@ async function runRealAgentLoop(
     }
 
     if (event.type === 'action') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       Vibration.vibrate(50);
       const text = formatAction(event.tool, event.args);
       addMessage('agent', 'action', text);
@@ -396,6 +398,7 @@ async function runRealPlannerLoop(
     } else if (event.type === 'agent_event') {
       const inner = event.event;
       if (inner.type === 'action') {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Vibration.vibrate(50);
         const text = formatAction(inner.tool, inner.args);
         addMessage('agent', 'action', text);
