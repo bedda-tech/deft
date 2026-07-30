@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { OnboardingNavigator } from './app/onboarding/OnboardingNavigator';
 import { ChatScreen } from './app/chat/ChatScreen';
@@ -75,7 +76,7 @@ export default function App() {
 
   // Main app — tabbed interface
   return (
-    <View style={styles.root}>
+    <GestureHandlerRootView style={styles.root}>
       <View style={styles.screen}>
         {tab === 'chat'     && <ChatScreen initialCommand={firstCommand} />}
         {tab === 'history'  && <HistoryScreen />}
@@ -85,7 +86,7 @@ export default function App() {
       <AgentOverlay />
       <VoiceModule />
       <StatusBar style="light" />
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

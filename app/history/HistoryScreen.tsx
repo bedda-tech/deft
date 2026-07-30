@@ -10,8 +10,9 @@
  * Sessions are persisted to AsyncStorage (up to 100) and restored on startup.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   LayoutAnimation,
   Platform,
@@ -24,6 +25,11 @@ import {
   UIManager,
   View,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import type {
+  PanGestureHandlerGestureEvent,
+  PanGestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 
 import {
   type AgentSession,
@@ -128,12 +134,14 @@ export function HistoryScreen() {
           data={filteredSessions}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => (
-            <SessionRow
-              session={item}
-              isSelected={selectedId === item.id}
-              onSelect={handleSelect}
-              onDelete={handleDelete}
-            />
+            <SwipeToDeleteRow onDelete={() => handleDelete(item.id)}>
+              <SessionRow
+                session={item}
+                isSelected={selectedId === item.id}
+                onSelect={handleSelect}
+                onDelete={handleDelete}
+              />
+            </SwipeToDeleteRow>
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -147,6 +155,81 @@ export function HistoryScreen() {
         />
       )}
     </SafeAreaView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Swipe-to-delete wrapper
+// ---------------------------------------------------------------------------
+
+const DELETE_ACTION_WIDTH = 72;
+const SNAP_THRESHOLD = 28;
+
+function SwipeToDeleteRow({
+  onDelete,
+  children,
+}: {
+  onDelete: () => void;
+  children: React.ReactNode;
+}) {
+  const posX = useRef(new Animated.Value(0)).current;
+  const settled = useRef(0);
+
+  const handleGesture = useCallback(
+    (e: PanGestureHandlerGestureEvent) => {
+      const raw = settled.current + e.nativeEvent.translationX;
+      posX.setValue(Math.max(-DELETE_ACTION_WIDTH, Math.min(0, raw)));
+    },
+    [posX],
+  );
+
+  const handleStateChange = useCallback(
+    (e: PanGestureHandlerStateChangeEvent) => {
+      const { state, translationX } = e.nativeEvent;
+      if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
+        const current = Math.max(-DELETE_ACTION_WIDTH, Math.min(0, settled.current + translationX));
+        const target = current < -SNAP_THRESHOLD ? -DELETE_ACTION_WIDTH : 0;
+        settled.current = target;
+        Animated.spring(posX, {
+          toValue: target,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 10,
+        }).start();
+      }
+    },
+    [posX],
+  );
+
+  const handleDeletePress = useCallback(() => {
+    Animated.timing(posX, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+      settled.current = 0;
+      onDelete();
+    });
+  }, [onDelete, posX]);
+
+  return (
+    <View style={styles.swipeWrapper}>
+      <View style={styles.deleteActionContainer}>
+        <TouchableOpacity
+          style={styles.deleteActionButton}
+          onPress={handleDeletePress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.deleteActionLabel}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+      <PanGestureHandler
+        onGestureEvent={handleGesture}
+        onHandlerStateChange={handleStateChange}
+        activeOffsetX={[-10, 10]}
+        failOffsetY={[-15, 15]}
+      >
+        <Animated.View style={{ transform: [{ translateX: posX }] }}>
+          {children}
+        </Animated.View>
+      </PanGestureHandler>
+    </View>
   );
 }
 
@@ -428,6 +511,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
+  },
+
+  // Swipe-to-delete
+  swipeWrapper: {
+    position: 'relative',
+  },
+  deleteActionContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: DELETE_ACTION_WIDTH,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  deleteActionButton: {
+    flex: 1,
+    backgroundColor: '#FF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteActionLabel: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
 
   // Session row
