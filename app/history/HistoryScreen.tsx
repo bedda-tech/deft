@@ -11,6 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import {
   Animated,
   FlatList,
@@ -246,6 +247,7 @@ interface SessionRowProps {
 
 function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const hasExtra = session.actions.length > 3;
 
   const toggle = useCallback(() => {
@@ -272,6 +274,13 @@ function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps
     Share.share({ message: formatSessionText(session) }).catch(() => {});
   }, [session]);
 
+  const handleCopy = useCallback(() => {
+    Clipboard.setStringAsync(formatSessionText(session)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }, [session]);
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
@@ -281,7 +290,19 @@ function SessionRow({ session, isSelected, onSelect, onDelete }: SessionRowProps
     >
       <View style={styles.rowTop}>
         <Text style={styles.command} numberOfLines={2}>{session.command}</Text>
-        <OutcomeBadge outcome={session.outcome} />
+        <View style={styles.topRight}>
+          <OutcomeBadge outcome={session.outcome} />
+          <TouchableOpacity
+            onPress={handleCopy}
+            style={styles.copyButton}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.copyButtonText, copied && styles.copyButtonTextDone]}>
+              {copied ? 'Copied!' : 'Copy'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {session.summary ? (
@@ -582,6 +603,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
+  },
+  topRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  copyButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  copyButtonText: {
+    fontSize: 11,
+    color: '#555',
+    fontWeight: '500',
+  },
+  copyButtonTextDone: {
+    color: '#4ADE80',
   },
   command: {
     flex: 1,
