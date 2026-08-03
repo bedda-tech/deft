@@ -4,6 +4,22 @@ Watchdog mode lets a user describe a condition and an interval; Deft then
 runs the agent loop on that cadence and sends a notification the moment the
 condition is true, without the user having to keep the app open.
 
+> **Implementation note (v1.4.0, 2026-08-03 correction):** this doc's
+> recommended path is Option A (WorkManager, §3) — that was never built.
+> What actually shipped is **Option C** (`src/agent/watchdogBridge.ts`: JS
+> `setInterval` kept alive by the existing foreground service). Reason:
+> WorkManager's `PeriodicWorkRequest` enforces a hard 15-minute floor, which
+> is incompatible with the 30s/1m/2m intervals the README advertises and
+> the `OneTimeWorkRequest` self-re-enqueuing workaround needs the
+> `HeadlessJsTaskService` rework flagged as "non-trivial" below — out of
+> scope for the v1 cut. Practical effect: ticks are **not** Doze-resistant;
+> they fire reliably only while the foreground service/notification stays
+> alive, and aggressive OEM battery managers (MIUI, Samsung, etc.) can still
+> kill it. `DeftWatchdogModule.kt` only posts notifications — there is no
+> `DeftWatchdogReceiver`, no `PeriodicWorkRequest`, no `HeadlessJsTaskService`.
+> CHANGELOG.md and README.md have been corrected to match; this design doc
+> is left as-is below as the record of the originally intended approach.
+
 ---
 
 ## 1. User Stories

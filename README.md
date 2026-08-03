@@ -68,7 +68,7 @@ Watchdog Mode runs the agent on a schedule, checking a condition and acting on i
 
 ### How it works
 
-- **Stays alive when backgrounded** — a foreground service holds the process and shows a persistent notification while the watchdog is active.
+- **Stays alive when backgrounded** — a foreground service holds the process and shows a persistent notification while the watchdog is active. This is best-effort, not Doze-resistant scheduling (no Android WorkManager): ticks only fire while that foreground notification is alive, and aggressive OEM battery managers (MIUI, Samsung, etc.) can still kill it. If checks stop firing, disable battery optimization for Deft.
 - **Persists across restarts** — watchdog schedules are saved to AsyncStorage and restored on app launch. If the app is force-quit, active watchdogs resume automatically.
 - **Multiple watchdogs** — you can have several `/watch` commands running simultaneously. Each has its own interval and condition.
 

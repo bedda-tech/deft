@@ -36,7 +36,7 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [1.4.0] – 2026-06-03
 
 ### Added
-- **Watchdog Mode** — slash command `/watch every Nm: <condition>` schedules a recurring background agent check at an interval (minimum 15 min, enforced by Android WorkManager); `/stopwatch` cancels it. New `DeftWatchdogModule.kt` native module, `watchdogBridge.ts` scheduler, and `watchdogStore.ts` persistence layer (commit 2b5e924)
+- **Watchdog Mode** — slash command `/watch every Nm: <condition>` schedules a recurring background agent check (any interval down to seconds; no enforced minimum); `/stopwatch` cancels it. Scheduling is JS `setInterval` kept alive by the existing foreground service, not Android WorkManager — see `docs/watchdog-design.md` for why. New `DeftWatchdogModule.kt` native module (notifications only), `watchdogBridge.ts` scheduler, and `watchdogStore.ts` persistence layer (commit 2b5e924)
 - **Dual-Model AgentLoop** — `FunctionGemmaProvider` handles tool dispatch at 270 M parameters while `GemmaProvider` (Gemma 4 E4B) handles open-ended reasoning; `DualModelProvider` coordinates both with a `dispatchToolFilter` to stay within the 270 M token budget. Reduces per-step latency on devices with enough RAM (≥ 5–6 GB) to run both models (device-agent commits ad37212, f55af9b)
 - **react-native-accessibility-controller v2 TurboModule** — full migration from legacy ReactPackage to TurboModule; adds `MediaProjection`-based screenshot API as an alternative to `AccessibilityService.takeScreenshot()` (commit 5c91e50)
 
