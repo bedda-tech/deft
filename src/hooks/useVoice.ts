@@ -146,8 +146,7 @@ export function usePushToTalk(
 
 interface WhisperHandle {
   type: 'whisper';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  recording: any;
+  recording: InstanceType<typeof import('expo-av').Audio.Recording>;
 }
 
 interface SRHandle {
