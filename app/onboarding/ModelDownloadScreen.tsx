@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { downloadModel } from '../../src/agent/modelManager';
+import { downloadModel, hasEnoughRamForOnDevice, MIN_DEVICE_RAM_GB } from '../../src/agent/modelManager';
 import { saveSettings } from '../../src/store/settingsStore';
 
 interface Props {
@@ -35,7 +35,10 @@ export function ModelDownloadScreen({ onNext }: Props) {
   const [status, setStatus] = useState<DownloadStatus>('idle');
   const [progress, setProgress] = useState(0); // 0-1
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showCloudMode, setShowCloudMode] = useState(false);
+  // Devices below the RAM floor can't run the on-device model at all — route
+  // straight to cloud mode instead of showing a download that will just fail.
+  const [lowRam] = useState(() => !hasEnoughRamForOnDevice());
+  const [showCloudMode, setShowCloudMode] = useState(lowRam);
   const [cloudApiKey, setCloudApiKey] = useState('');
   const [savingCloud, setSavingCloud] = useState(false);
 
@@ -97,9 +100,11 @@ export function ModelDownloadScreen({ onNext }: Props) {
             {showCloudMode ? 'Use Cloud API' : 'Download AI Model'}
           </Text>
           <Text style={styles.subline}>
-            {showCloudMode
-              ? 'Enter an API key to run inference in the cloud instead of on-device. You can switch to local later in Settings.'
-              : `Deft runs ${MODEL_NAME} entirely on your phone. Download it once and all inference stays local forever.`}
+            {lowRam
+              ? `This device doesn't have enough RAM (${MIN_DEVICE_RAM_GB} GB minimum) to run ${MODEL_NAME} on-device. Enter an API key to run inference in the cloud instead.`
+              : showCloudMode
+                ? 'Enter an API key to run inference in the cloud instead of on-device. You can switch to local later in Settings.'
+                : `Deft runs ${MODEL_NAME} entirely on your phone. Download it once and all inference stays local forever.`}
           </Text>
 
           {showCloudMode ? (
@@ -176,9 +181,11 @@ export function ModelDownloadScreen({ onNext }: Props) {
                     {savingCloud ? 'Saving...' : 'Save & Continue'}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.skipButton} onPress={() => setShowCloudMode(false)}>
-                  <Text style={styles.skipText}>Back to download</Text>
-                </TouchableOpacity>
+                {!lowRam && (
+                  <TouchableOpacity style={styles.skipButton} onPress={() => setShowCloudMode(false)}>
+                    <Text style={styles.skipText}>Back to download</Text>
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               <>

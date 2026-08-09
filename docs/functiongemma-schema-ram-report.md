@@ -203,7 +203,7 @@ This is optional — on a 6 GB device simultaneous load fits comfortably.
 | 1 | Fix `scroll.nodeId` from required → optional in `gemma4/phoneTools.ts` | **BLOCKING** | deft-eng |
 | 2 | Add optional `nodeId` to `TYPE_TEXT_TOOL` in `gemma4/phoneTools.ts` | High | deft-eng |
 | 3 | Add `long_press`, `clear_text`, `press_enter`, `task_failed`, `scroll_until_found` to `GEMMA4_PHONE_TOOLS` | Medium | deft-eng |
-| 4 | Add device RAM check at startup; route to cloud-only on < 3 GB devices | Medium | deft-eng |
+| 4 | ~~Add device RAM check at startup; route to cloud-only on < 3 GB devices~~ — done, `src/agent/modelManager.ts` `hasEnoughRamForOnDevice()` (2026-08-09) | Medium | deft-eng |
 | 5 | Run real-device RSS measurement on Pixel 8 to validate peak estimates | Medium | Matt |
 | 6 | Confirm FunctionGemma 270M checkpoint output format (bare JSON vs XML) on real device | High | Matt |
 
