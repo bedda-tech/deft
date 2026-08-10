@@ -43,7 +43,7 @@ import { getSettings, saveSettings, subscribeSettings } from '../../src/store/se
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 import { speakText, stopSpeech } from '../../src/voice/voiceBridge';
 import { usePushToTalk, type PTTState } from '../../src/hooks/useVoice';
-import { parseWatchCommand, startWatchdog, stopWatchdog } from '../../src/agent/watchdogBridge';
+import { MAX_ACTIVE_WATCHDOGS, parseWatchCommand, startWatchdog, stopWatchdog } from '../../src/agent/watchdogBridge';
 import { getWatchdogs as _getWatchdogs, type WatchdogConfig } from '../../src/store/watchdogStore';
 
 // ---------------------------------------------------------------------------
@@ -175,6 +175,10 @@ export function ChatScreen({ initialCommand }: ChatScreenProps) {
       const parsed = parseWatchCommand(trimmed);
       if (parsed) {
         const config = startWatchdog(parsed.task, parsed.intervalMs);
+        if (!config) {
+          addMessage('agent', 'text', `You already have ${MAX_ACTIVE_WATCHDOGS} active watchdogs (the max). Cancel one with /stopwatch <id> before starting another.`);
+          return;
+        }
         const intervalText = parsed.intervalMs >= 3_600_000
           ? `${Math.round(parsed.intervalMs / 3_600_000)}h`
           : parsed.intervalMs >= 60_000

@@ -39,3 +39,17 @@ export function deriveWatchdogOutcome(event: WatchdogTerminalEvent): WatchdogTic
     ? { status: 'triggered', resultText: event.result }
     : { status: 'not_met', resultText: event.reason };
 }
+
+/**
+ * Each active watchdog runs the full agent loop (accessibility-tree read +
+ * LLM inference) on its own interval; on RAM-constrained devices, too many
+ * overlapping watchdogs risks concurrent inference/OOM. Cap concurrent
+ * active watchdogs (docs/watchdog-design.md sec 5, "Maximum concurrent
+ * watchers").
+ */
+export const MAX_ACTIVE_WATCHDOGS = 3;
+
+/** True if a new watchdog may be started given the current active count. */
+export function canStartWatchdog(activeCount: number, cap: number = MAX_ACTIVE_WATCHDOGS): boolean {
+  return activeCount < cap;
+}

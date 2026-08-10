@@ -6,8 +6,9 @@
  * notification fires and the watchdog is cancelled.
  *
  * Scheduling uses JS setInterval so the foreground service keeps the process
- * alive. One watchdog at a time is supported in v1 — if the regular agent
- * is running when a tick is due, the tick is skipped.
+ * alive. If the regular (non-watchdog) agent is running when a tick is due,
+ * the tick is skipped. Up to MAX_ACTIVE_WATCHDOGS may run concurrently;
+ * startWatchdog() rejects further creation past that (see watchdogTick.ts).
  */
 
 import { NativeModules, Platform } from 'react-native';
@@ -16,6 +17,7 @@ import { getGenerateFn, getGenerateWithImageFn } from './llmBridge';
 import {
   cancelWatchdog,
   createWatchdog,
+  getActiveWatchdogs,
   getWatchdogs,
   pauseWatchdog,
   recordWatchdogResult,
@@ -24,13 +26,15 @@ import {
   triggerWatchdog,
   type WatchdogConfig,
 } from '../store/watchdogStore';
-import { buildWatchdogContext, deriveWatchdogOutcome } from './watchdogTick';
+import { buildWatchdogContext, canStartWatchdog, deriveWatchdogOutcome, MAX_ACTIVE_WATCHDOGS } from './watchdogTick';
 import {
   completeForegroundService,
   startForegroundService,
   stopForegroundService,
   updateForegroundService,
 } from './foregroundService';
+
+export { MAX_ACTIVE_WATCHDOGS } from './watchdogTick';
 
 // ---------------------------------------------------------------------------
 // Types (mirrors device-agent without importing it)
@@ -317,9 +321,17 @@ function _formatInterval(ms: number): string {
 
 /**
  * Create a new watchdog and start scheduling ticks.
- * Returns the WatchdogConfig so the caller can show confirmation in the chat.
+ * Returns the WatchdogConfig so the caller can show confirmation in the chat,
+ * or null if the concurrent-watchdog cap (MAX_ACTIVE_WATCHDOGS) is already
+ * reached -- the caller should show a message telling the user to cancel one
+ * first rather than silently queuing it (each active watchdog runs the full
+ * agent loop on RAM-constrained devices, so queuing hides real memory risk).
  */
-export function startWatchdog(task: string, intervalMs: number, toolPreset = 'read_only'): WatchdogConfig {
+export function startWatchdog(task: string, intervalMs: number, toolPreset = 'read_only'): WatchdogConfig | null {
+  if (!canStartWatchdog(getActiveWatchdogs().length)) {
+    return null;
+  }
+
   const config = createWatchdog(task, intervalMs, toolPreset);
 
   const handle = setInterval(() => {

@@ -1,4 +1,21 @@
-import { buildWatchdogContext, deriveWatchdogOutcome } from '../watchdogTick';
+import { buildWatchdogContext, canStartWatchdog, deriveWatchdogOutcome, MAX_ACTIVE_WATCHDOGS } from '../watchdogTick';
+
+describe('canStartWatchdog', () => {
+  it('allows starting below the cap', () => {
+    expect(canStartWatchdog(0)).toBe(true);
+    expect(canStartWatchdog(MAX_ACTIVE_WATCHDOGS - 1)).toBe(true);
+  });
+
+  it('rejects starting at or above the cap (task #6414)', () => {
+    expect(canStartWatchdog(MAX_ACTIVE_WATCHDOGS)).toBe(false);
+    expect(canStartWatchdog(MAX_ACTIVE_WATCHDOGS + 1)).toBe(false);
+  });
+
+  it('respects a custom cap', () => {
+    expect(canStartWatchdog(1, 1)).toBe(false);
+    expect(canStartWatchdog(0, 1)).toBe(true);
+  });
+});
 
 describe('buildWatchdogContext', () => {
   it('is empty before any tick has run', () => {

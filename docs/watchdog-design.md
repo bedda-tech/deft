@@ -275,10 +275,21 @@ discoverable.
 
 **Maximum concurrent watchers**
 
-[ ] How many active watchdogs should be allowed simultaneously? WorkManager
-    can handle many periodic jobs, but each tick runs the full agent loop
-    (heavy: screen read + LLM inference). Suggested default: **max 3 active
-    watchdogs**. Each additional watchdog queues behind active ones.
+[x] **Resolved (2026-08-10, task #6414):** capped at 3 (`MAX_ACTIVE_WATCHDOGS`
+    in `src/agent/watchdogTick.ts`). `startWatchdog()` (`watchdogBridge.ts`)
+    checks `canStartWatchdog(getActiveWatchdogs().length)` before creating
+    anything and returns `null` if the cap is already hit -- rejected, not
+    queued: with the shipped `setInterval`-based scheduler (not WorkManager,
+    see the implementation note at the top of this doc) there's no job queue
+    to silently hold a 4th watchdog in, so queuing would either need new
+    infra or hide the real memory risk this cap exists to prevent. Chat UI
+    (`ChatScreen.tsx`) shows "You already have 3 active watchdogs (the max).
+    Cancel one with /stopwatch <id> before starting another." on rejection.
+    Note this caps *concurrent watchdog creation*, not concurrent *tick
+    execution* -- ticks from up to 3 active watchdogs can still overlap each
+    other in time (only the regular one-shot agent vs. watchdog-tick
+    exclusion is enforced, via `_agentBusy`/`setAgentBusy`). Tick-level
+    serialization across watchdogs was out of scope for this ticket.
 
 **Timeout when condition is never met**
 
