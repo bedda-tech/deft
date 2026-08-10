@@ -300,11 +300,18 @@ discoverable.
     must include: _"If the condition is not yet met, call task_failed with
     reason 'condition not met'. If it IS met, call task_complete."_
 
-[ ] Should the agent be able to store intermediate state between ticks (e.g.
-    "previous package status was X")? Currently `context` in `AgentOptions`
-    is a `Record<string, string>` populated at run start. One option: after
-    each tick, the agent's `task_complete` result is saved back into
-    `WatchdogConfig.lastResult` and passed as context to the next tick.
+[x] **Resolved (2026-08-10, task #6420):** yes. `WatchdogConfig.lastResult`
+    (`string | null`) holds what the agent observed on the previous tick --
+    from `task_complete`'s result or `task_failed`'s reason, whichever fired.
+    `watchdogBridge.ts` `runWatchdogTick()` passes it into the next tick as
+    `AgentLoop`'s `context: { previous_check_result: lastResult }`, and the
+    watchdog system prompt instructs the model to compare the current screen
+    against it -- this is what makes a "status changed to X" condition
+    (rather than "status is X") evaluable at all. `watchdogStore.ts`'s
+    `recordWatchdogResult()` persists it after every tick, success or not.
+    Pure state-carry logic (`buildWatchdogContext` / `deriveWatchdogOutcome`
+    in `src/agent/watchdogTick.ts`) is unit tested in
+    `src/agent/__tests__/watchdogTick.test.ts` against the FedEx example above.
 
 **Security / privacy**
 

@@ -29,6 +29,14 @@ export interface WatchdogConfig {
   triggerCount: number;
   /** Auto-cancel after this many consecutive non-triggering ticks. Default: 50. */
   maxTicks: number;
+  /**
+   * What the agent observed on the most recent tick (from task_complete's
+   * result or task_failed's reason), or null before the first tick has run.
+   * Passed as context into the next tick so the agent can compare against it
+   * -- required for conditions like "status changed to X" that can't be
+   * evaluated from a single observation alone.
+   */
+  lastResult: string | null;
 }
 
 const STORAGE_KEY = 'deft:watchdogs';
@@ -103,6 +111,7 @@ export function createWatchdog(
     status: 'active',
     triggerCount: 0,
     maxTicks,
+    lastResult: null,
   };
   _watchdogs = [config, ..._watchdogs];
   _save();
@@ -116,6 +125,18 @@ export function recordWatchdogTick(id: string): void {
     w.id === id
       ? { ...w, triggerCount: w.triggerCount + 1, lastRunAt: Date.now() }
       : w,
+  );
+  _save();
+  _notify();
+}
+
+/**
+ * Record what the agent observed on this tick (regardless of whether the
+ * condition was met), so the next tick can compare against it.
+ */
+export function recordWatchdogResult(id: string, result: string): void {
+  _watchdogs = _watchdogs.map((w) =>
+    w.id === id ? { ...w, lastResult: result } : w,
   );
   _save();
   _notify();

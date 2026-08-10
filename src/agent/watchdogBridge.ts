@@ -18,11 +18,13 @@ import {
   createWatchdog,
   getWatchdogs,
   pauseWatchdog,
+  recordWatchdogResult,
   recordWatchdogTick,
   resumeWatchdog,
   triggerWatchdog,
   type WatchdogConfig,
 } from '../store/watchdogStore';
+import { buildWatchdogContext, deriveWatchdogOutcome } from './watchdogTick';
 import {
   completeForegroundService,
   startForegroundService,
@@ -65,7 +67,12 @@ export function setAgentBusy(busy: boolean): void {
 const WATCHDOG_SYSTEM_SUFFIX = `
 You are checking a condition for the user. Read the screen and determine whether the condition is met.
 - If the condition IS met, call task_complete with a brief description of what you observed.
-- If the condition is NOT yet met, call task_failed with reason "condition not met".
+- If the condition is NOT yet met, call task_failed with a reason describing the CURRENT state you observed
+  (not just "condition not met") -- it is recorded and shown to you as "previous_check_result" on the next
+  check so you can compare against it.
+If a "previous_check_result" is provided in the context, compare the current screen state to it. This matters
+for conditions phrased as a change (e.g. "status changed to X"): only treat those as met if the current state
+differs from the previous one in the way described, not merely because the current state already matches X.
 Do not perform any actions beyond reading the screen.
 `.trim();
 
@@ -102,7 +109,13 @@ export function parseWatchCommand(text: string): ParsedWatchCommand | null {
 // Internal: run one watchdog tick
 // ---------------------------------------------------------------------------
 
-async function runWatchdogTick(config: WatchdogConfig): Promise<'triggered' | 'not_met' | 'error'> {
+interface WatchdogTickResult {
+  status: 'triggered' | 'not_met' | 'error';
+  /** What the agent observed this tick, to persist as the next tick's context. Null on error. */
+  resultText: string | null;
+}
+
+async function runWatchdogTick(config: WatchdogConfig): Promise<WatchdogTickResult> {
   const settings = getSettings();
 
   try {
@@ -116,6 +129,7 @@ async function runWatchdogTick(config: WatchdogConfig): Promise<'triggered' | 'n
         systemPromptSuffix?: string;
         timeoutMs?: number;
         toolFilter?: string[];
+        context?: Record<string, string>;
       }) => {
         run: (task: string) => AsyncGenerator<AgentEvent>;
         abort: () => void;
@@ -158,7 +172,7 @@ async function runWatchdogTick(config: WatchdogConfig): Promise<'triggered' | 'n
         generateWithImageFn: getGenerateWithImageFn() ?? undefined,
       });
     } else {
-      return 'error';
+      return { status: 'error', resultText: null };
     }
 
     // Watchdog always uses read_only tool preset so it can't cause unintended actions.
@@ -172,20 +186,23 @@ async function runWatchdogTick(config: WatchdogConfig): Promise<'triggered' | 'n
       systemPromptSuffix: WATCHDOG_SYSTEM_SUFFIX,
       timeoutMs: 60_000,
       toolFilter,
+      context: buildWatchdogContext({ lastResult: config.lastResult }),
     });
 
     for await (const event of loop.run(config.task)) {
       if (event.type === 'complete') {
-        return 'triggered';
+        const outcome = deriveWatchdogOutcome({ type: 'complete', result: event.result });
+        return { status: outcome.status, resultText: outcome.resultText };
       } else if (event.type === 'failed') {
-        return 'not_met';
+        const outcome = deriveWatchdogOutcome({ type: 'failed', reason: event.reason });
+        return { status: outcome.status, resultText: outcome.resultText };
       } else if (event.type === 'error') {
-        return 'error';
+        return { status: 'error', resultText: null };
       }
     }
-    return 'not_met';
+    return { status: 'not_met', resultText: null };
   } catch {
-    return 'error';
+    return { status: 'error', resultText: null };
   }
 }
 
@@ -416,8 +433,11 @@ async function _tick(id: string): Promise<void> {
   _showWatchdogNotification(config, config.triggerCount + 1);
 
   const result = await runWatchdogTick(config);
+  if (result.resultText !== null) {
+    recordWatchdogResult(id, result.resultText);
+  }
 
-  if (result === 'triggered') {
+  if (result.status === 'triggered') {
     const handle = _timers.get(id);
     if (handle !== undefined) {
       clearInterval(handle);
@@ -427,7 +447,7 @@ async function _tick(id: string): Promise<void> {
     _showWatchdogTriggeredNotification(config, `Condition met: ${config.task}`);
   } else {
     recordWatchdogTick(id);
-    if (_timers.size > 0 && result !== 'error') {
+    if (_timers.size > 0 && result.status !== 'error') {
       // Keep the foreground notification showing the tick count.
       const updated = getWatchdogs().find((w) => w.id === id);
       if (updated) _showWatchdogNotification(updated, updated.triggerCount);
