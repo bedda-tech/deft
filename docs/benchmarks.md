@@ -208,34 +208,82 @@ Run each combination 3× and report median ms/step and PSS.
 
 ## 4. Results Table
 
-Fill in measured values. Leave cells blank until hardware data is available.
+**Update (2026-08-13):** Pixel 8 / Galaxy S24 numbers below are cross-referenced from
+[`react-native-executorch`](https://github.com/bedda-tech/react-native-executorch)'s own
+benchmark suite (`docs/docs/02-benchmarks/inference-time.md`, `memory-usage.md`, and
+`docs/docs/07-other/03-gemma4-guide.mdx`) — same repo, same model, same ExecuTorch runtime
+Deft ships. They were **not measured inside Deft's agent loop**: that repo's harness
+(`scripts/benchmark_gemma4.py`) measures raw model throughput/TTFT/memory directly, not
+Deft's full per-step latency (screen read → inference → tool parse → execute → settle) as
+scoped in Section 2a. Treat these as a strong proxy, not a substitute for the ms/step
+instrumentation described above — no one has run that instrumentation on physical hardware
+yet.
 
-### 4a. Inference latency (median ms/step, text-only mode)
+**Device/variant caveats — read before citing these numbers:**
+- **Pixel 8 vs Pixel 8 Pro:** Deft's target device is the base Pixel 8 (8 GB RAM, Section 1).
+  The source numbers are from a **Pixel 8 Pro** (12 GB RAM, larger ML accelerator). Expect the
+  base Pixel 8 to run measurably slower / closer to OOM given 4 GB less headroom against the
+  quantized model's ~5.8 GB peak footprint.
+- **Galaxy S24 RAM:** the source lists its S24 unit at 12 GB RAM; Deft's Section 1 table
+  assumes the 8 GB US variant. This discrepancy is unreconciled (possibly a different regional
+  SKU) — don't treat the throughput number as validated for the specific 8 GB US unit Deft
+  targets until confirmed on real hardware.
+- **No direct Pixel 6a data exists anywhere.** The closest available proxy is the Pixel 7a
+  (same Tensor G2 SoC family, 8 GB RAM), on which the source recorded **OOM on every Gemma 4
+  variant** (quantized and bf16). Pixel 6a has *less* RAM (6 GB, Section 1), so it will almost
+  certainly also OOM on `gemma-4-e4b-quantized` — that's an inference from a same-chip-family
+  proxy, not a measurement, and still needs confirming on real hardware.
+- **`gemma-4-e4b` (full bf16 precision) OOMs on every device tested**, including the
+  higher-RAM Pixel 8 Pro and Galaxy S24 (12 GB each). Don't expect it to run on any of Deft's
+  target devices — `gemma-4-e4b-quantized` is the only realistic variant.
+
+### 4a. Inference latency
+
+The source harness doesn't measure "ms/step" (Deft's full agent-step metric, Section 2a) — it
+separately measures **decode throughput** (tokens/s, steady-state generation) and **first-token
+latency** (TTFT, ms). Both are reported below as the closest available proxy; cells with no
+data are still blank pending physical hardware.
+
+**Decode throughput (tokens/s, 200-token completion from a 128-token prompt):**
 
 | Device | gemma-4-e4b | gemma-4-e4b-quantized |
 |---|---|---|
-| Pixel 6a | — | — |
-| Pixel 8 | — | — |
-| Galaxy S24 | — | — |
+| Pixel 6a | — (no hardware; Pixel 7a proxy suggests OOM) | — (no hardware; Pixel 7a proxy suggests OOM) |
+| Pixel 8 *(Pixel 8 Pro data — see caveats)* | OOM | 11.3 tok/s |
+| Galaxy S24 *(see RAM caveat)* | OOM | 12.1 tok/s |
 | Sub-$300 (TBD) | — | — |
 
-### 4b. Vision TTFT (ms, single screenshot, `useVision: true`)
+### 4b. First-token latency / Vision TTFT (ms)
 
-| Device | gemma-4-e4b |
-|---|---|
-| Pixel 6a | — |
-| Pixel 8 | — |
-| Galaxy S24 | — |
-| Sub-$300 (TBD) | — |
+Text-only TTFT (~128-token prompt) and screenshot TTFT (896×896 PNG, `useVision: true`),
+quantized model only — bf16 OOMs on every device above.
 
-### 4c. Memory headroom (MemAvailable while Deft + model running)
+| Device | Text-only TTFT | Screenshot TTFT |
+|---|---|---|
+| Pixel 6a | — | — |
+| Pixel 8 *(Pixel 8 Pro data)* | 1840 ms | 4650 ms |
+| Galaxy S24 *(see RAM caveat)* | 1720 ms | 4380 ms |
+| Pixel 7a *(Pixel 6a proxy only, not a target device)* | OOM | OOM |
+| Sub-$300 (TBD) | — | — |
 
-| Device | RAM | PSS idle (model hot) | PSS during inference | MemAvailable headroom |
+### 4c. Memory headroom
+
+The source reports **peak RSS increase** (model load + active inference, relative to baseline
+app memory) — not the PSS/MemAvailable breakdown Section 2b describes, but the same underlying
+signal: how much RAM the model consumes while running.
+
+| Device | RAM | Peak RSS increase (`gemma-4-e4b-quantized`) | PSS during inference | MemAvailable headroom |
 |---|---|---|---|---|
-| Pixel 6a | 6 GB | — | — | — |
-| Pixel 8 | 8 GB | — | — | — |
-| Galaxy S24 | 8 GB | — | — | — |
+| Pixel 6a | 6 GB | — (no hardware; Pixel 7a proxy suggests OOM — 6 GB is below the ~5.8 GB peak footprint, leaving near-zero headroom) | — | — |
+| Pixel 8 *(Pixel 8 Pro data, 12 GB RAM — not the 8 GB base Pixel 8)* | 8 GB | 5.8 GB | — | — |
+| Galaxy S24 *(see RAM caveat)* | 8 GB | 5.6 GB | — | — |
 | Sub-$300 (TBD) | ≥ 6 GB | — | — | — |
+
+**Gap still requiring physical hardware:** Pixel 6a and the sub-$300 device — the two
+remaining target devices from roadmap.md's v1.3.0 candidate — have no data anywhere; the
+source repo never tested a device in that RAM/chip class either. Someone with physical access
+to a Pixel 6a and a sub-$300 Android device still needs to run the adb methodology in
+Section 3 on those two before this table is complete.
 
 ---
 
