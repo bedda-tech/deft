@@ -43,7 +43,14 @@ import { getSettings, saveSettings, subscribeSettings } from '../../src/store/se
 import { ScreenPreview } from '../../src/components/ScreenPreview';
 import { speakText, stopSpeech } from '../../src/voice/voiceBridge';
 import { usePushToTalk, type PTTState } from '../../src/hooks/useVoice';
-import { MAX_ACTIVE_WATCHDOGS, parseWatchCommand, startWatchdog, stopWatchdog } from '../../src/agent/watchdogBridge';
+import {
+  MAX_ACTIVE_WATCHDOGS,
+  parseWatchCommand,
+  pauseWatchdogById,
+  resumeWatchdogById,
+  startWatchdog,
+  stopWatchdog,
+} from '../../src/agent/watchdogBridge';
 import { getWatchdogs as _getWatchdogs, type WatchdogConfig } from '../../src/store/watchdogStore';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +58,29 @@ import { getWatchdogs as _getWatchdogs, type WatchdogConfig } from '../../src/st
 // ---------------------------------------------------------------------------
 
 type RecordingState = PTTState; // alias for tap-toggle SR state
+
+// ---------------------------------------------------------------------------
+// Watchdog listing helpers
+// ---------------------------------------------------------------------------
+
+function formatWatchdogRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const secs = Math.floor(diff / 1000);
+  const mins = Math.floor(secs / 60);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+
+  if (secs < 60) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
+function describeWatchdog(w: WatchdogConfig): string {
+  const lastRun = w.lastRunAt ? formatWatchdogRelativeTime(w.lastRunAt) : 'never run';
+  const pausedTag = w.status === 'paused' ? ' [paused]' : '';
+  return `• ${w.id}${pausedTag}: ${w.task} (last check: ${lastRun}, ${w.triggerCount}/${w.maxTicks} checks)`;
+}
 
 // ---------------------------------------------------------------------------
 // Root component
@@ -191,19 +221,51 @@ export function ChatScreen({ initialCommand }: ChatScreenProps) {
       return;
     }
 
-    // /stopwatch command: cancel a watchdog by ID.
+    // /stopwatch command: cancel a watchdog by ID, or list active/paused ones.
     if (trimmed.toLowerCase().startsWith('/stopwatch')) {
       const id = trimmed.split(/\s+/)[1];
       if (id) {
         stopWatchdog(id);
         addMessage('agent', 'text', `Watchdog ${id} cancelled.`);
       } else {
-        const active = _getWatchdogs().filter((w: WatchdogConfig) => w.status === 'active');
-        if (active.length === 0) {
+        const watchdogs = _getWatchdogs().filter(
+          (w: WatchdogConfig) => w.status === 'active' || w.status === 'paused',
+        );
+        if (watchdogs.length === 0) {
           addMessage('agent', 'text', 'No active watchdogs.');
         } else {
-          addMessage('agent', 'text', 'Active watchdogs:\n' + active.map((w: WatchdogConfig) => `• ${w.id}: ${w.task}`).join('\n'));
+          addMessage('agent', 'text', 'Active watchdogs:\n' + watchdogs.map(describeWatchdog).join('\n'));
         }
+      }
+      return;
+    }
+
+    // /pausewatch command: pause an active watchdog by ID (keeps its config; stops ticking).
+    if (trimmed.toLowerCase().startsWith('/pausewatch')) {
+      const id = trimmed.split(/\s+/)[1];
+      const target = id ? _getWatchdogs().find((w: WatchdogConfig) => w.id === id) : undefined;
+      if (!id) {
+        addMessage('agent', 'text', 'Usage: /pausewatch <id>\nSee active watchdog IDs with /stopwatch.');
+      } else if (!target || target.status !== 'active') {
+        addMessage('agent', 'text', `No active watchdog with ID ${id}.`);
+      } else {
+        pauseWatchdogById(id);
+        addMessage('agent', 'text', `Watchdog ${id} paused. Resume it with /resumewatch ${id}.`);
+      }
+      return;
+    }
+
+    // /resumewatch command: resume a paused watchdog by ID.
+    if (trimmed.toLowerCase().startsWith('/resumewatch')) {
+      const id = trimmed.split(/\s+/)[1];
+      const target = id ? _getWatchdogs().find((w: WatchdogConfig) => w.id === id) : undefined;
+      if (!id) {
+        addMessage('agent', 'text', 'Usage: /resumewatch <id>\nSee paused watchdog IDs with /stopwatch.');
+      } else if (!target || target.status !== 'paused') {
+        addMessage('agent', 'text', `No paused watchdog with ID ${id}.`);
+      } else {
+        resumeWatchdogById(id);
+        addMessage('agent', 'text', `Watchdog ${id} resumed.`);
       }
       return;
     }

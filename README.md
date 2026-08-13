@@ -52,10 +52,14 @@ Watchdog Mode runs the agent on a schedule, checking a condition and acting on i
 ```
 /watch every 5m: Is the Uber ETA under 3 minutes?
 /stopwatch
+/pausewatch <id>
+/resumewatch <id>
 ```
 
 - `/watch every <interval>: <condition>` — schedule a periodic check. The agent wakes up, reads the screen, evaluates your condition, and fires a notification when it's met.
-- `/stopwatch` — cancel all active watchdogs.
+- `/stopwatch` — list active/paused watchdogs (with last-check time and tick count). `/stopwatch <id>` cancels one.
+- `/pausewatch <id>` — pause an active watchdog without losing its config.
+- `/resumewatch <id>` — resume a paused watchdog.
 
 ### Interval examples
 
@@ -102,8 +106,10 @@ When a watchdog condition is met, Deft will:
 
 ### Managing watchdogs
 
-- `/stopwatch` - cancel all active watchdogs
-- `/stopwatch [ID]` - cancel a specific watchdog by ID (shown when starting a watchdog)
+- `/stopwatch` - list active/paused watchdogs, each showing its ID, task, last-check time, and tick count (`N/maxTicks`)
+- `/stopwatch [ID]` - cancel a specific watchdog by ID (shown when starting a watchdog, and in the `/stopwatch` listing)
+- `/pausewatch [ID]` - pause a watchdog without cancelling it; its config and tick history are kept
+- `/resumewatch [ID]` - resume a paused watchdog
 
 ## Screenshots
 

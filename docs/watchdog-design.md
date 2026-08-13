@@ -226,6 +226,16 @@ running a one-shot agent loop.
 
 ### Active watchdog list: History screen extension
 
+> **Implementation note (2026-08-13):** this section describes a History
+> screen UI that was never built — `pauseWatchdogById`/`resumeWatchdogById`
+> shipped in `watchdogBridge.ts` but had no caller. Rather than build the
+> screen, we closed the gap with `/pausewatch <id>` and `/resumewatch <id>`
+> chat commands (same pattern as `/watch`/`/stopwatch`), and extended the
+> no-argument `/stopwatch` listing to show each watchdog's `[paused]` tag,
+> last-check time, and `triggerCount`/`maxTicks`. A dedicated History screen
+> section is still open if usage shows the chat commands aren't discoverable
+> enough — nothing below describes what shipped.
+
 The History screen already shows past sessions. Extend it with an "Active
 Watchdogs" section at the top (visible only when `watchdogStore.getActive()` is
 non-empty). Each row shows:
@@ -352,7 +362,9 @@ discoverable.
 - [ ] `DeftWatchdogWorker.kt` — `CoroutineWorker` or `HeadlessJsTaskService`
 - [ ] `DeftAgentService.kt` — add `ACTION_WATCHDOG_TICK` + `ACTION_WATCHDOG_TRIGGERED`
 - [ ] `plugins/withDeftWatchdog.js` — Expo config plugin to inject Kotlin + manifest entries
-- [ ] History screen — active watchdog list UI
+- [x] History screen — active watchdog list UI (closed differently: see the
+      2026-08-13 implementation note under "Active watchdog list" above —
+      `/pausewatch` + `/resumewatch` chat commands instead of a screen)
 - [ ] System prompt update — add watchdog condition semantics
 - [ ] Test: unit tests for `parseWatchCommand`, `watchdogStore`, and the
       `onTick` condition-check flow (mock AgentLoop)
