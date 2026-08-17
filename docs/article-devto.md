@@ -1,8 +1,15 @@
+<!--
+  Source of truth for this article's body. docs/article-devto-final.md is the
+  publish-ready twin (adds dev.to frontmatter + manual/API publish instructions,
+  published: false). Edit here first, then port body changes over there —
+  they've drifted before (task #6967).
+-->
+
 # How I Built a Fully On-Device AI Phone Agent for Android Using React Native
 
 No cloud. No tethered computer. Just Gemma 4 running locally on your phone, reading the screen, and tapping things for you.
 
-This is the technical story behind [Deft](https://github.com/bedda-tech/deft) — an open-source ecosystem of React Native libraries that enable fully autonomous AI phone control on Android.
+This is the technical story behind [Deft](https://github.com/bedda-tech/deft) — an open-source ecosystem of React Native libraries that enable fully autonomous AI phone control on Android. It's now at v1.4.5, with a dual-model agent loop and a background "watchdog" mode that didn't exist when this project started.
 
 ---
 
@@ -250,6 +257,37 @@ The agent status overlay (`AgentOverlay`) is a headless component that drives th
 
 ---
 
+## Part 5: What Shipped After Launch — Watchdog Mode and the Dual-Model AgentLoop
+
+v1.0.0 was a single-model agent you drove interactively from the chat screen. Two features shipped since (both in v1.4.0) change that shape, and they're the two most interesting things in the codebase to a technical reader.
+
+### Watchdog Mode
+
+Type `/watch every 2m: notify me when the Uber driver is within 5 minutes` in the chat and Deft schedules a recurring background check: every interval, it runs the full agent loop, evaluates your condition against the screen, and fires a notification the moment it's true. `/stopwatch` cancels it.
+
+The design doc originally called for Android `WorkManager` — the "correct" way to schedule reliable background work. It didn't ship that way. `PeriodicWorkRequest` enforces a hard 15-minute floor, which is incompatible with the 30-second/1-minute intervals the feature needs, and the `OneTimeWorkRequest` self-re-enqueuing workaround needed a `HeadlessJsTaskService` rework that was out of scope for the v1 cut. What actually shipped is simpler and more honest about its limits: a JS `setInterval` kept alive by the same foreground service that already keeps the agent running when Deft is backgrounded.
+
+The tradeoff is real and documented, not hidden: ticks are not Doze-resistant. They fire reliably only while the foreground notification stays alive, and aggressive OEM battery managers (MIUI, Samsung's) can still kill it. `DeftWatchdogModule.kt` on the native side only posts notifications — there's no `WorkManager` receiver underneath. For the use cases this targets (package tracking, price alerts, ETA checks over a few hours) that's an acceptable trade for shipping something that actually works at 30-second granularity. A hard cap of 3 concurrent watchdogs keeps a runaway `/watch` habit from turning into a battery drain.
+
+### Dual-Model AgentLoop
+
+The original architecture ran every inference call — planning, tool dispatch, vision grounding — through one Gemma 4 E4B model. `DualModelProvider` splits that: a 270M-parameter `FunctionGemmaProvider` handles `generateWithTools` (the fast, structured "tap node 12" decisions), while Gemma 4 E4B keeps `generate` and `generateWithVision` (the open-ended reasoning and screenshot grounding that actually need a big model).
+
+```typescript
+const provider = new DualModelProvider({
+  reasoningProvider: new GemmaProvider({ model: 'GEMMA4_E4B', generateFn: reasoningGenerateFn }),
+  loadDispatchProvider: async () =>
+    new FunctionGemmaProvider({ generateFn: dispatchGenerateFn }),
+  dispatchToolFilter: PHONE_TOOL_PRESETS.DISPATCH, // compact schema, stays in FunctionGemma's token budget
+})
+```
+
+Two things make this practical rather than just clever: `loadDispatchProvider` lazy-loads FunctionGemma so its ~350 MB RAM cost isn't paid until the agent actually starts executing actions, and if the dispatch call throws — OOM, not-yet-loaded — `generateWithTools` transparently falls back to the reasoning provider. The agent degrades instead of breaking.
+
+The RAM math is the real constraint: FunctionGemma 270M peaks around 350 MB, Gemma 4 E4B around 2.8 GB, both loaded simultaneously around 3.1 GB. That puts the dual-model experience out of reach on 4 GB devices (a 4 GB Galaxy A54 config can't load Gemma 4 E4B at all) — the practical floor is 5–6 GB of device RAM.
+
+---
+
 ## Key Technical Challenges
 
 **1. Thread safety for the accessibility service**
@@ -272,14 +310,14 @@ Hardware bitmaps (required for accessibility screenshots) can't be compressed di
 
 ## Current State
 
-All four repos are live on GitHub under [bedda-tech](https://github.com/bedda-tech):
+Deft is at **v1.4.5**, 12 CHANGELOG'd releases in from v1.0.0. All four repos are live on GitHub under [bedda-tech](https://github.com/bedda-tech):
 
-- [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller) — Full AccessibilityService TurboModule
-- [react-native-executorch](https://github.com/bedda-tech/react-native-executorch) — Fork with Gemma 4 support  
-- [react-native-device-agent](https://github.com/bedda-tech/react-native-device-agent) — Agent orchestration loop
-- [deft](https://github.com/bedda-tech/deft) — Consumer app
+- [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller) — now a full TurboModule (v2 migrated off the legacy ReactPackage bridge), plus a `MediaProjection`-based screenshot API alongside `AccessibilityService.takeScreenshot()`
+- [react-native-executorch](https://github.com/bedda-tech/react-native-executorch) — fork with Gemma 4 support (E2B and E4B, selectable in Settings)
+- [react-native-device-agent](https://github.com/bedda-tech/react-native-device-agent) — agent orchestration loop, now with the dual-model provider and watchdog scheduling described above
+- [deft](https://github.com/bedda-tech/deft) — consumer app, with Watchdog Mode, plan mode, resumable background tasks, and a foreground service that keeps the agent alive when backgrounded
 
-The beta APK is available on the GitHub Releases page. Try it on any Android 11+ device.
+A real APK — not just a beta build — is attached to every [GitHub Release](https://github.com/bedda-tech/deft/releases); try it on any Android 11+ device.
 
 Contributions, issues, and GitHub Discussions are very welcome.
 
@@ -287,9 +325,12 @@ Contributions, issues, and GitHub Discussions are very welcome.
 
 ## What's Next
 
-- **Performance benchmarks** across device tiers (Pixel 8 Pro, mid-range phones)
-- **Gemma 4 E2B option** for phones with less RAM
-- **iOS stub** so React Native libraries work cross-platform (Android is where AccessibilityService lives, but the JS API can return no-ops on iOS)
-- **F-Droid submission** for open-source distribution
+Most of what this section originally listed has since shipped or been resolved:
+
+- ~~Gemma 4 E2B option~~ — shipped in v1.0.0's Settings screen (model selector: E2B fast / E4B stronger reasoning)
+- ~~iOS stub~~ — investigated, not shipped. `AccessibilityService` has no real iOS equivalent; a full-fidelity port isn't feasible within App Store rules. The closest viable path is enterprise/MDM-only distribution, a different go-to-market than this project is currently pursuing. Full writeup: [`docs/ios-investigation.md`](https://github.com/bedda-tech/deft/blob/main/docs/ios-investigation.md)
+- ~~F-Droid submission~~ — metadata exists (`.fdroid.yml`), pending a refresh to point at the current release
+
+One item is still genuinely open: **physical-device benchmark numbers for the Pixel 6a and sub-$300 Android devices** — Deft's actual minimum-spec targets. The methodology is fully documented in [`docs/benchmarks.md`](https://github.com/bedda-tech/deft/blob/main/docs/benchmarks.md), and Pixel 8 Pro / Galaxy S24 numbers exist as a cross-referenced proxy from upstream `react-native-executorch` benchmarks — but nobody has run that instrumentation on the actual target hardware yet. The early signal isn't encouraging: a same-chip-family proxy (Pixel 7a, same Tensor G2 as the 6a) OOM'd on every Gemma 4 variant, which suggests the 6a's 6 GB RAM may be tight against the quantized model's ~5.8 GB peak footprint. That's a hardware-access gap, not an engineering one — anyone with a Pixel 6a or a sub-$300 Android device in hand can fill in the table.
 
 Follow along: [@BeddaTech](https://twitter.com/BeddaTech) and [@MattWhitney__](https://twitter.com/MattWhitney__)
