@@ -211,4 +211,19 @@ describe('_tick via startWatchdog / restoreWatchdogs (mocked AgentLoop)', () => 
     expect(stored.triggerCount).toBe(0);
     expect(mockAgentLoopRun).not.toHaveBeenCalled();
   });
+
+  it('records tick on error when no providers are available (neither on-device nor cloud)', async () => {
+    // Mock getGenerateFn to return null (no on-device provider)
+    mockGetGenerateFn.mockReturnValueOnce(null as unknown as () => Promise<string>);
+
+    const config = watchdogBridge.startWatchdog('check something', 10_000)!;
+    expect(config).not.toBeNull();
+
+    await flush(700);
+
+    const stored = watchdogStore.getWatchdogs().find((w) => w.id === config.id)!;
+    expect(stored.status).toBe('active');
+    expect(stored.triggerCount).toBe(1);
+    expect(mockAgentLoopRun).not.toHaveBeenCalled();
+  });
 });
