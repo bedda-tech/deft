@@ -86,7 +86,10 @@ Recommended size: 1270×760 px (16:9), dark theme.
 - [ ] All four repos public on GitHub
 - [ ] README badges up to date (CI passing, npm version)
 - [ ] APK available on GitHub Releases (v1.0.0 tag)
-- [ ] F-Droid submission PR opened (fastlane metadata is ready)
+- [ ] F-Droid submission MR opened — **blocked**: recipe (`.fdroid.yml`) and store
+      listing are ready, but the three `file:../` deps must be published to npm
+      first (needs an NPM_TOKEN, human action). Status + runbook:
+      `docs/fdroid-submission.md`
 - [ ] HN post scheduled (see tweet-threads.md)
 - [ ] Reddit posts ready (r/reactnative, r/LocalLLaMA, r/androiddev)
 - [ ] @BeddaTech Twitter thread queued

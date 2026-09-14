@@ -27,7 +27,8 @@ Deft is built on three open-source React Native libraries, all available on GitH
 
 <b>Requirements</b>
 
-• Android 10 (API 29) or higher
+• Android 8.0 (API 26) or higher
+• 5 GB or more of RAM to run the model on-device (otherwise use cloud fallback)
 • ~2.5 GB free storage for the Gemma 4 model download
 • Accessibility Service permission (required for screen reading and actions)
 

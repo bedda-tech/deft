@@ -1,0 +1,10 @@
+Deft 1.4.5
+
+• Watchdog Mode — "/watch every 5m: <condition>" schedules a recurring background
+  agent check; "/stopwatch", "/pausewatch" and "/resumewatch" manage running ones.
+• Dual-model agent loop — FunctionGemma 270M handles tool dispatch while Gemma 4
+  E4B handles open-ended reasoning (devices with 5-6 GB RAM or more).
+• Swipe-to-delete and copy-to-clipboard on session history rows.
+• Fixed: release builds now attach the APK; scroll-until-found actions show a
+  readable label in the chat feed.
+• Fixed: minimum Android version enforced correctly at 8.0 (API 26).
