@@ -1,11 +1,17 @@
 # F-Droid submission — status and runbook
 
-**Status as of 2026-09-14: prepared, not submitted.** The recipe in
-[`.fdroid.yml`](../.fdroid.yml) is accurate for v1.4.5 and the store listing under
-`fastlane/metadata/android/en-US/` is complete, but the app **cannot build in
-F-Droid's sandbox yet**. Four things block the merge request. Opening it before
-they clear would put a recipe in front of F-Droid's build bot that fails on the
-first step, which burns review-queue goodwill for no gain.
+**Status as of 2026-09-14: prepared, not submitted — and a decision is needed on
+whether to submit at all.** The recipe in [`.fdroid.yml`](../.fdroid.yml) is
+accurate for v1.4.5 and the store listing under `fastlane/metadata/android/en-US/`
+is complete, but the app **cannot build in F-Droid's sandbox**. Four things block
+the merge request, and **Blocker 3 is not a paperwork problem** — ExecuTorch and
+OpenCV reach the build as prebuilt `.so`/`.a` files even when installed from npm,
+which F-Droid's build-from-source policy rejects outright. Clearing the
+npm blockers (1 and 2) does not clear it.
+
+Read Blocker 3 first. Opening an MR before it is resolved would put a recipe in
+front of F-Droid's build bot that cannot pass, which burns review-queue goodwill
+for no gain.
 
 This document is the runbook: what is blocked, who can unblock it, and the exact
 commands to run once it is unblocked.
@@ -72,26 +78,57 @@ git -C react-native-device-agent            tag v1.2.0 && git -C react-native-de
 Mansion's actively-maintained upstream package (v0.9.3 on npm); our fork is a
 modified 0.9.0. Publishing the fork under that name is impossible (taken) and
 would be a dependency-confusion hazard anyway. It must be renamed — proposed
-`@bedda-tech/react-native-executorch` — before it can be published, and
-`package.json` plus every `import` path updated to match.
+`@bedda-tech/react-native-executorch` — before it can be published.
 
-## Blocker 3 — prebuilt native binaries in the executorch fork (needs work)
+Rename surface, counted 2026-09-14 (it is small — the decision is the hard part,
+not the edit): 5 references across 4 source files in `deft`
+(`src/agent/llmBridge.ts`, `src/agent/modelManager.ts`,
+`src/components/VoiceModule.tsx`, `app/onboarding/ModelDownloadScreen.tsx`) plus
+`package.json`; 3 files in `react-native-device-agent`
+(`src/providers/{GemmaProvider,FunctionGemmaProvider,FallbackProvider}.ts`); and
+33 self-references inside the fork (`package.json`, `src/`, `android/`, podspec).
 
-F-Droid's scanner rejects binary blobs committed to source (`.so`, `.a`, `.jar`,
-`.aar`) and will flag them during review. The executorch fork carries ~137 MB of
-them:
+## Blocker 3 — prebuilt native binaries ship inside the npm package (the real wall)
 
-- `third-party/ios/libs/executorch/*.a` — 20+ prebuilt iOS static libs
-- `android/libs/classes.jar`
-- `common/rnexecutorch/tests/integration/libs/libfbjni.so`
+**This is the blocker that matters, and clearing Blockers 1 and 2 does not touch
+it.** F-Droid builds everything from source and rejects prebuilt native binaries;
+`react-native-executorch` is a delivery vehicle for exactly that.
 
-The iOS `.a` files are dead weight for an Android-only F-Droid build and are the
-easy half — they can be excluded from the published npm tarball via `files`/
-`.npmignore`, which also removes them from what F-Droid's scanner sees. The
-Android `classes.jar` and the ExecuTorch native runtime need either a source
-build in the recipe or an explicit `Scanner` exemption argued in the MR. Neither
-is a blocker to *writing* the recipe, but both will come up in review, so have the
-answer ready.
+Measured 2026-09-14 with `npm pack --dry-run` on the fork — the *published tarball*
+(not the git checkout) is **30.6 MB packed, 101.8 MB unpacked, 1093 files**, and
+includes:
+
+| Binary | Size |
+|---|---|
+| `third-party/android/libs/executorch/x86_64/libexecutorch.so` | 16.5 MB |
+| `third-party/android/libs/executorch/arm64-v8a/libexecutorch.so` | 12.4 MB |
+| `third-party/android/libs/opencv/*/libopencv_{imgproc,core,features2d}.a` | ~28 MB |
+| `third-party/android/libs/phonemis/*/libphonemis.a` | ~4 MB |
+| `third-party/android/libs/cpuinfo/*/libcpuinfo.so`, kleidicv `.a`, `android/libs/classes.jar` | remainder |
+
+So after publishing, F-Droid's build server would link the APK against an
+ExecuTorch runtime and an OpenCV build **it did not compile and cannot verify**.
+That is a policy rejection, not a lint warning.
+
+The fork's `files` array already excludes the iOS static libs
+(`!third-party/ios/libs/executorch`, `!third-party/ios/ExecutorchLib`), so the
+~137 MB of `.a` files in the git checkout is not the problem — the *Android*
+binaries are, and they are the ones the app actually needs.
+
+Realistic options, none cheap:
+
+1. **Compile ExecuTorch + OpenCV from source in the F-Droid recipe.** Correct, and
+   a large piece of work: ExecuTorch's own build needs CMake, a pinned PyTorch
+   toolchain and a long compile on F-Droid's builders. Nobody has costed this.
+2. **Ship Deft on F-Droid without on-device inference** (cloud fallback only).
+   Contradicts the entire pitch; not worth it.
+3. **Don't ship on F-Droid.** GitHub Releases + APK already works. F-Droid is a
+   trust/discovery win, not a distribution necessity.
+
+**Recommendation: decide between (1) and (3) before spending anything further on
+Blockers 1 and 2 *for F-Droid's sake*.** Publishing to npm is still worth doing on
+its own merits (it unblocks outside contributors, `npm install` for users, and the
+README badges) — just do not expect it to unblock F-Droid.
 
 ## Blocker 4 — anti-features must be declared (done in `.fdroid.yml`)
 
@@ -140,6 +177,8 @@ hiding them does.
 - [ ] `npm view react-native-device-agent version` returns a version
 - [ ] `npm view @bedda-tech/react-native-executorch version` returns a version
 - [ ] `package.json` contains no `file:` dependency
+- [ ] no prebuilt `.so`/`.a`/`.jar` reaches the build — i.e. option (1) of
+      Blocker 3 is implemented, or F-Droid has agreed to an exemption in writing
 - [ ] `git clone` of deft alone + `npm ci` + `npx expo prebuild --platform android`
       succeeds in an empty directory
 - [ ] `fdroid lint tech.bedda.deft` is clean
