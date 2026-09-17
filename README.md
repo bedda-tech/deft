@@ -10,7 +10,6 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![build](https://img.shields.io/github/actions/workflow/status/bedda-tech/deft/ci.yml?branch=main)](https://github.com/bedda-tech/deft/actions)
-[![version](https://img.shields.io/badge/version-1.4.0-brightgreen.svg)](https://github.com/bedda-tech/deft/releases/tag/v1.4.0)
 
 **On-device AI phone agent for Android.** Control your phone with natural language. No cloud, no tether -- everything runs locally.
 
