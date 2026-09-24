@@ -44,6 +44,7 @@ let _activeLoop: { abort: () => void } | null = null;
 const RESUMABLE_KEY = 'deft:resumableTask';
 const RESUMABLE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+/** Stores a multi-step task and its action history for resume on app restart. */
 export interface ResumableTask {
   task: string;
   steps: string[];
@@ -66,6 +67,7 @@ function _getAsyncStorage(): {
   }
 }
 
+/** Load a task and its history from storage if it exists and hasn't expired. */
 export async function loadResumableTask(): Promise<ResumableTask | null> {
   try {
     const storage = _getAsyncStorage();
