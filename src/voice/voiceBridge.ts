@@ -23,29 +23,35 @@ const _sttListeners = new Set<ReadyListener>();
 // TTS
 // ---------------------------------------------------------------------------
 
+/** Register the TTS implementation function. */
 export function registerSpeakFn(fn: SpeakFn): void {
   _speakFn = fn;
   _ttsListeners.forEach((cb) => cb(true));
 }
 
+/** Unregister the TTS implementation function. */
 export function unregisterSpeakFn(): void {
   _speakFn = null;
   _ttsListeners.forEach((cb) => cb(false));
 }
 
+/** Register the Kokoro TTS stop function. */
 export function registerStopKokoroFn(fn: StopFn): void {
   _stopKokoroFn = fn;
 }
 
+/** Unregister the Kokoro TTS stop function. */
 export function unregisterStopKokoroFn(): void {
   _stopKokoroFn = null;
 }
 
+/** Subscribe to TTS ready state changes; returns unsubscribe function. */
 export function subscribeIsTTSReady(fn: ReadyListener): () => void {
   _ttsListeners.add(fn);
   return () => { _ttsListeners.delete(fn); };
 }
 
+/** Check if TTS is ready to use. */
 export function isTTSReady(): boolean {
   return _speakFn !== null;
 }
@@ -68,6 +74,7 @@ export async function speakText(text: string): Promise<void> {
   } catch { /* expo-speech not linked — silent */ }
 }
 
+/** Stop active speech playback from both Kokoro and expo-speech. */
 export function stopSpeech(): void {
   _stopKokoroFn?.().catch(() => {});
   try {
@@ -81,21 +88,25 @@ export function stopSpeech(): void {
 // STT (Whisper)
 // ---------------------------------------------------------------------------
 
+/** Register the STT (Whisper) implementation function. */
 export function registerTranscribeFn(fn: TranscribeFn): void {
   _transcribeFn = fn;
   _sttListeners.forEach((cb) => cb(true));
 }
 
+/** Unregister the STT (Whisper) implementation function. */
 export function unregisterTranscribeFn(): void {
   _transcribeFn = null;
   _sttListeners.forEach((cb) => cb(false));
 }
 
+/** Subscribe to STT ready state changes; returns unsubscribe function. */
 export function subscribeIsSTTReady(fn: ReadyListener): () => void {
   _sttListeners.add(fn);
   return () => { _sttListeners.delete(fn); };
 }
 
+/** Check if STT (Whisper) is ready to use. */
 export function isWhisperReady(): boolean {
   return _transcribeFn !== null;
 }
