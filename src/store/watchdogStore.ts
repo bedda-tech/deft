@@ -76,6 +76,7 @@ void _load();
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Subscribe to watchdog changes; returns an unsubscribe function. */
 export function subscribeWatchdogs(
   callback: (watchdogs: WatchdogConfig[]) => void,
 ): () => void {
