@@ -36,6 +36,7 @@ export function requestNotificationPermission(): void {
   void PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
 }
 
+/** Start the foreground service with the given task description; shows a persistent notification. */
 export function startForegroundService(taskDescription: string): void {
   if (!module || _serviceRunning) return;
   requestNotificationPermission();
@@ -44,11 +45,13 @@ export function startForegroundService(taskDescription: string): void {
   module.startService(taskDescription);
 }
 
+/** Update the foreground service notification with the current step count. */
 export function updateForegroundService(stepCount: number): void {
   if (!module || !_serviceRunning) return;
   module.updateNotification(_activeTask, stepCount);
 }
 
+/** Stop the foreground service and dismiss the notification. */
 export function stopForegroundService(): void {
   if (!module || !_serviceRunning) return;
   _serviceRunning = false;

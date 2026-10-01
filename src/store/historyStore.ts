@@ -83,6 +83,7 @@ function uid(): string {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Subscribe to session history changes; returns an unsubscribe function. */
 export function subscribeSessions(
   listener: (sessions: AgentSession[]) => void,
 ): () => void {
@@ -93,6 +94,7 @@ export function subscribeSessions(
   };
 }
 
+/** Get a snapshot of all recorded agent sessions. */
 export function getSessions(): AgentSession[] {
   return [..._sessions];
 }
@@ -122,12 +124,14 @@ export function addSession(
   persist();
 }
 
+/** Clear all recorded sessions from memory and storage. */
 export function clearSessions(): void {
   _sessions = [];
   notify();
   AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
 }
 
+/** Delete a session by id and persist the change. */
 export function removeSession(id: string): void {
   _sessions = _sessions.filter((s) => s.id !== id);
   notify();

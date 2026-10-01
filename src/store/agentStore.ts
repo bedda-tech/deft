@@ -44,10 +44,12 @@ function notify(): void {
 // Read
 // ---------------------------------------------------------------------------
 
+/** Get a snapshot of the current agent state. */
 export function getAgentState(): AgentState {
   return { ..._state };
 }
 
+/** Subscribe to agent state changes; returns an unsubscribe function. */
 export function subscribeAgentState(
   listener: (state: AgentState) => void,
 ): () => void {

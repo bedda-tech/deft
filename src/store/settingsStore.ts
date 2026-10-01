@@ -198,6 +198,7 @@ export async function resetSettings(): Promise<void> {
   }
 }
 
+/** True if loadSettings() has completed (async on app startup). */
 export function isSettingsLoaded(): boolean {
   return _loaded;
 }

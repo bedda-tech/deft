@@ -38,6 +38,7 @@ function notify() {
   for (const l of listeners) l(snapshot);
 }
 
+/** Subscribe to chat message changes; returns an unsubscribe function. */
 export function subscribe(listener: (msgs: ChatMessage[]) => void): () => void {
   listeners.push(listener);
   listener([...messages]);
@@ -46,10 +47,12 @@ export function subscribe(listener: (msgs: ChatMessage[]) => void): () => void {
   };
 }
 
+/** Get a snapshot of all chat messages in the current session. */
 export function getMessages(): ChatMessage[] {
   return [...messages];
 }
 
+/** Add a new message to the chat and notify subscribers. */
 export function addMessage(
   role: MessageRole,
   kind: MessageKind,
@@ -78,7 +81,7 @@ export function updateMessage(
   notify();
 }
 
-/** Remove all messages (useful for "clear session"). */
+/** Clear all messages from the current session. */
 export function clearMessages(): void {
   messages = [];
   notify();
