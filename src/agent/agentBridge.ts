@@ -126,6 +126,7 @@ AppState.addEventListener('change', (nextState) => {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Process a chat command: run the agent loop, stream updates to the chat store, and record the session. */
 export async function processCommand(command: string): Promise<void> {
   _stopped = false;
   setAgentBusy(true);
