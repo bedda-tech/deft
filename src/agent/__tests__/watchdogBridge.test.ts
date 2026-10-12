@@ -40,7 +40,7 @@ jest.mock('../../store/settingsStore', () => ({
 // react-native-device-agent is dynamically require()'d inside watchdogBridge,
 // per the design doc's own instruction to mock AgentLoop for onTick tests.
 let mockRunEvents: Array<
-  { type: 'complete'; result: string } | { type: 'failed'; reason: string }
+  { type: 'complete'; result: string } | { type: 'failed'; reason: string } | { type: 'error'; error: Error }
 > = [];
 const mockAgentLoopRun = jest.fn();
 jest.mock(
@@ -225,5 +225,17 @@ describe('_tick via startWatchdog / restoreWatchdogs (mocked AgentLoop)', () => 
     expect(stored.status).toBe('active');
     expect(stored.triggerCount).toBe(1);
     expect(mockAgentLoopRun).not.toHaveBeenCalled();
+  });
+
+  it('handles error event from agent loop', async () => {
+    mockRunEvents = [{ type: 'error', error: new Error('test error') }];
+    const config = watchdogBridge.startWatchdog('check something', 10_000)!;
+    expect(config).not.toBeNull();
+
+    await flush(700);
+
+    const stored = watchdogStore.getWatchdogs().find((w) => w.id === config.id)!;
+    expect(stored.status).toBe('active');
+    expect(stored.triggerCount).toBe(1);
   });
 });
