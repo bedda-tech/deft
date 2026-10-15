@@ -87,10 +87,12 @@ export function subscribeWatchdogs(
   };
 }
 
+/** Get a snapshot of all watchdogs (active, paused, and finished). */
 export function getWatchdogs(): WatchdogConfig[] {
   return [..._watchdogs];
 }
 
+/** Get a snapshot of only the currently active watchdogs. */
 export function getActiveWatchdogs(): WatchdogConfig[] {
   return _watchdogs.filter((w) => w.status === 'active');
 }
