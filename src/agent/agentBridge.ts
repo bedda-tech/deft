@@ -85,6 +85,7 @@ export async function loadResumableTask(): Promise<ResumableTask | null> {
   }
 }
 
+/** Remove the persisted resumable-task record from AsyncStorage. Errors are ignored. */
 export async function clearResumableTask(): Promise<void> {
   try {
     await _getAsyncStorage()?.removeItem(RESUMABLE_KEY);

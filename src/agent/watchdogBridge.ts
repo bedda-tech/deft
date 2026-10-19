@@ -60,6 +60,7 @@ const _timers = new Map<string, ReturnType<typeof setInterval>>();
 /** True while the regular agent bridge is running a task. Set externally. */
 let _agentBusy = false;
 
+/** Record whether the regular agent bridge is currently running a task. */
 export function setAgentBusy(busy: boolean): void {
   _agentBusy = busy;
 }
@@ -91,6 +92,10 @@ export interface ParsedWatchCommand {
   task: string;
 }
 
+/**
+ * Parse `/watch every <n><unit> <task>`. Units: s/sec, h/hr; anything else is minutes.
+ * Returns null if the text is not a watch command or has no task after the interval.
+ */
 export function parseWatchCommand(text: string): ParsedWatchCommand | null {
   const m = text.trim().match(WATCH_RE);
   if (!m) return null;

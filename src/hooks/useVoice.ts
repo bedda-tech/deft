@@ -28,6 +28,10 @@ export interface UsePushToTalkResult {
   cancel: () => void;
 }
 
+/**
+ * Push-to-talk recording. Uses on-device Whisper when ready, otherwise falls
+ * back to expo-speech-recognition. Each finished transcript is passed to onTranscript.
+ */
 export function usePushToTalk(
   onTranscript: (text: string) => void,
 ): UsePushToTalkResult {
