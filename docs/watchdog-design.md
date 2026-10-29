@@ -173,8 +173,17 @@ will always run eventually.
 `PeriodicWorkRequest`. Intervals shorter than 15 min should use a
 `OneTimeWorkRequest` that re-enqueues itself on completion.
 
-[ ] Decide whether to enforce a 15-minute UI minimum or implement the
-    self-re-enqueuing `OneTimeWorkRequest` pattern for sub-15-minute intervals.
+[x] Decided: enforce a 15-minute minimum (2026-10-29, task #14411). Reasoning:
+    (a) the self-re-enqueuing `OneTimeWorkRequest` path needs a Kotlin
+    `WatchdogWorker` that does not exist yet and cannot be verified on-device
+    from this repo; (b) the design's own Doze note (section 5) already expects
+    short intervals to slip to 15-30 min, so a sub-15-minute promise would be
+    best-effort anyway; (c) a single floor keeps the UI, the scheduler and the
+    docs saying the same thing. `/watch` rejects shorter intervals with a
+    message naming the floor (`MIN_WATCHDOG_INTERVAL_MS` / `validateWatchInterval`
+    in `src/agent/watchdogBridge.ts`). Note: the shipped JS `setInterval`
+    scheduler has no 15-minute limit of its own; the floor is a product choice
+    that mirrors Option A.
 
 ### Option B — AlarmManager with `setExactAndAllowWhileIdle`
 
@@ -200,10 +209,12 @@ for intervals > ~60 seconds.
 A watchdog is created by prefixing a command with `/watch`:
 
 ```
-/watch every 5m: Uber is within 5 minutes
+/watch every 15m: Uber is within 5 minutes
 /watch every 15m: FedEx package status changed
-/watch every 2m check if NVDA crossed $150
+/watch every 15m check if NVDA crossed $150
 ```
+
+Intervals under 15 minutes are rejected (see section 3, Option A).
 
 **Parsing in `agentBridge.ts`** (or a new `commandParser.ts`):
 

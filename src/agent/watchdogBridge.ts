@@ -93,6 +93,22 @@ export interface ParsedWatchCommand {
 }
 
 /**
+ * Shortest allowed watchdog interval. Matches WorkManager's PeriodicWorkRequest
+ * floor, the scheduler named in docs/watchdog-design.md (Option A), so a watchdog
+ * never promises a cadence the background-work path cannot keep.
+ */
+export const MIN_WATCHDOG_INTERVAL_MS = 15 * 60_000;
+
+/**
+ * Returns a user-facing error if the interval is below MIN_WATCHDOG_INTERVAL_MS,
+ * or null if it is allowed.
+ */
+export function validateWatchInterval(intervalMs: number): string | null {
+  if (intervalMs >= MIN_WATCHDOG_INTERVAL_MS) return null;
+  return `Watchdog intervals must be at least 15 minutes (the Android background-work minimum). Try /watch every 15m: <condition>`;
+}
+
+/**
  * Parse `/watch every <n><unit> <task>`. Units: s/sec, h/hr; anything else is minutes.
  * Returns null if the text is not a watch command or has no task after the interval.
  */

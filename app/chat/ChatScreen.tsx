@@ -47,6 +47,7 @@ import {
   MAX_ACTIVE_WATCHDOGS,
   parseWatchCommand,
   pauseWatchdogById,
+  validateWatchInterval,
   resumeWatchdogById,
   startWatchdog,
   stopWatchdog,
@@ -204,6 +205,11 @@ export function ChatScreen({ initialCommand }: ChatScreenProps) {
     if (trimmed.toLowerCase().startsWith('/watch')) {
       const parsed = parseWatchCommand(trimmed);
       if (parsed) {
+        const intervalError = validateWatchInterval(parsed.intervalMs);
+        if (intervalError) {
+          addMessage('agent', 'text', intervalError);
+          return;
+        }
         const config = startWatchdog(parsed.task, parsed.intervalMs);
         if (!config) {
           addMessage('agent', 'text', `You already have ${MAX_ACTIVE_WATCHDOGS} active watchdogs (the max). Cancel one with /stopwatch <id> before starting another.`);

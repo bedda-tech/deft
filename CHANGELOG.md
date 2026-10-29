@@ -7,6 +7,9 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Watchdog minimum interval** — `/watch` now rejects intervals shorter than 15 minutes with a message naming the floor, matching WorkManager's periodic-work minimum (see `docs/watchdog-design.md` §3)
+
 ## [1.4.5] – 2026-07-06
 
 ### Fixed

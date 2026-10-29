@@ -76,6 +76,19 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+describe('validateWatchInterval', () => {
+  it('accepts the 15-minute floor and anything above it', () => {
+    expect(watchdogBridge.validateWatchInterval(watchdogBridge.MIN_WATCHDOG_INTERVAL_MS)).toBeNull();
+    expect(watchdogBridge.validateWatchInterval(3_600_000)).toBeNull();
+  });
+
+  it('rejects intervals under 15 minutes with a message naming the floor', () => {
+    const err = watchdogBridge.validateWatchInterval(300_000);
+    expect(err).toContain('at least 15 minutes');
+    expect(err).toContain('/watch every 15m');
+  });
+});
+
 describe('parseWatchCommand', () => {
   it('parses minute units (m / min)', () => {
     expect(watchdogBridge.parseWatchCommand('/watch every 5m: Uber is within 5 minutes')).toEqual({
