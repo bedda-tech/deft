@@ -1,7 +1,18 @@
 # F-Droid submission — status and runbook
 
-**Status as of 2026-09-14: prepared, not submitted — and a decision is needed on
-whether to submit at all.** The recipe in [`.fdroid.yml`](../.fdroid.yml) is
+**Closed: not shipping on F-Droid. Decided 2026-11-25 (Oliver, fleet call, task
+#18267), option 3 of Blocker 3.** Deft ships Android APKs through GitHub Releases;
+F-Droid is a trust and discovery win, not a distribution need. Option 1 (compile
+ExecuTorch, OpenCV, phonemis, cpuinfo and kleidicv from source inside the F-Droid
+recipe) was not given a costing spike: ExecuTorch alone needs a pinned PyTorch/CMake
+toolchain and our fork's patches reproduced on F-Droid's builders, and every
+release would have to keep that recipe building. That is plainly more than the
+week of deft-engineering time that would justify it. Reopen only if the
+executorch fork stops shipping prebuilt Android binaries, or if F-Droid grants
+an exemption in writing. Nothing was submitted to `fdroiddata`. The rest of this
+file is kept as the record and as the runbook if that ever happens.
+
+**Status as of 2026-09-14 (historical): prepared, not submitted.** The recipe in [`.fdroid.yml`](../.fdroid.yml) is
 accurate for v1.4.5 and the store listing under `fastlane/metadata/android/en-US/`
 is complete, but the app **cannot build in F-Droid's sandbox**. Four things block
 the merge request, and **Blocker 3 is not a paperwork problem** — ExecuTorch and
@@ -34,6 +45,14 @@ Submission is a **merge request on GitLab** (`fdroiddata`), not a GitHub PR:
 
 ## Blocker 1 — three dependencies are `file:../` paths (hard blocker)
 
+> **Update 2026-11-25:** two of the three can now come from npm.
+> `react-native-device-agent` 1.3.0 and `react-native-accessibility-controller`
+> 1.4.1 are published (checked with `npm view` today; see
+> `projects/bedda-labs/RELEASES.md`). `package.json` still points all three at
+> `file:../`, so repointing the two published ones is a separate, small change.
+> The executorch fork is the only dependency that cannot be published yet, and
+> it waits on its name (#18262).
+
 `package.json` depends on three sibling repos by relative path:
 
 ```json
@@ -54,6 +73,11 @@ would need per-release version pinning by hand. Only worth it if npm publishing
 stays blocked indefinitely.)*
 
 ## Blocker 2 — npm publishing needs a human (hard blocker, needs Matt)
+
+> **Update 2026-11-25: resolved for the two libraries.** The npm token exists,
+> and both were published in November. The only npm-side blocker left is the
+> executorch name: `@bedda-tech/react-native-executorch` is still a 404 on npm,
+> and the rename is ticket #18262. The 2026-09-14 text below is history.
 
 Verified again 2026-09-14: `npm whoami` → `ENEEDAUTH`, and `npm view` returns 404
 for `react-native-device-agent`, `react-native-accessibility-controller`,
