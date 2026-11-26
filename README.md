@@ -15,6 +15,12 @@
 
 Deft is the consumer app that combines three open-source React Native libraries into a single experience: speak a command, and a local LLM reads the screen, reasons about the task, and executes actions on your behalf.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Deft agent opening Settings and turning on dark theme" width="280" />
+</p>
+
+<p align="center"><sub>A real 33-second agent run: "Open Settings and turn on dark theme", unedited apart from the trim. Recorded on an x86_64 Android emulator with the cloud-model path (Claude Sonnet 5.5 through OpenRouter); the on-device Gemma model is not used in this recording. Development build with fixes that land in the next release.</sub></p>
+
 ---
 
 ## How It Works
