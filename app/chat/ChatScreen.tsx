@@ -16,7 +16,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -31,6 +30,7 @@ import {
   clearMessages,
   subscribe,
 } from '../../src/store/chatStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   processCommand,
   stopAgent,
