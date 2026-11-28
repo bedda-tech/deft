@@ -1,3 +1,4 @@
+import './src/agent/executorchInit';
 import { registerRootComponent } from 'expo';
 
 import App from './App';

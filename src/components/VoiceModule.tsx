@@ -94,7 +94,7 @@ async function stopActiveSound(): Promise<void> {
 async function playPcmAudio(samples: Float32Array): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const FileSystem = require('expo-file-system') as typeof import('expo-file-system');
+    const FileSystem = require('expo-file-system/legacy') as typeof import('expo-file-system/legacy');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Audio } = require('expo-av') as typeof import('expo-av');
 

@@ -221,7 +221,7 @@ async function startSpeechRecognitionPTT(
 // ---------------------------------------------------------------------------
 
 async function readWavAsFloat32(uri: string): Promise<Float32Array> {
-  const FileSystem = require('expo-file-system') as typeof import('expo-file-system');
+  const FileSystem = require('expo-file-system/legacy') as typeof import('expo-file-system/legacy');
   const b64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
