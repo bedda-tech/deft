@@ -8,4 +8,6 @@
 import { initExecutorch } from 'react-native-executorch';
 import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
 
-initExecutorch({ resourceFetcher: ExpoResourceFetcher });
+// The published fetcher 0.9.0 typings do not match the local executorch fork's adapter
+// type (fork lacks BaseResourceFetcherClass). Cast until the versions are paired.
+initExecutorch({ resourceFetcher: ExpoResourceFetcher as unknown as Parameters<typeof initExecutorch>[0]['resourceFetcher'] });
