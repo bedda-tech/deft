@@ -44,7 +44,8 @@
           "microphonePermission": "Deft uses the microphone to listen to your voice commands.",
           "speechRecognitionPermission": "Deft uses speech recognition to understand your voice commands."
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

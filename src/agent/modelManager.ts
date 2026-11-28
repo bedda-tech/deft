@@ -63,6 +63,8 @@ type LLMInstance = {
   forward: (input: string, imagePaths?: string[]) => Promise<string>;
 };
 
+let executorchInitialized = false;
+
 function getExecutorch(): {
   LLMModule: { fromModelName: (config: ModelConfig) => Promise<LLMInstance> };
   downloadModel: (config: ModelConfig, onProgress: (p: number) => void) => Promise<void>;
@@ -70,7 +72,15 @@ function getExecutorch(): {
   GEMMA4_E4B_QUANTIZED: ModelConfig;
 } {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require('react-native-executorch');
+  const ex = require('react-native-executorch');
+  if (!executorchInitialized) {
+    // Model downloads need a resource fetcher before any executorch call.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { ExpoResourceFetcher } = require('react-native-executorch-expo-resource-fetcher');
+    ex.initExecutorch({ resourceFetcher: ExpoResourceFetcher });
+    executorchInitialized = true;
+  }
+  return ex;
 }
 
 function modelConfig(model: 'E2B' | 'E4B'): ModelConfig {
