@@ -8,6 +8,9 @@
 import { initExecutorch } from 'react-native-executorch';
 import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
 
-// The published fetcher 0.9.0 typings do not match the local executorch fork's adapter
-// type (fork lacks BaseResourceFetcherClass). Cast until the versions are paired.
+// Pairing (#18769): the fork is upstream 31bdd99c74 (v0.9.0) plus 17 Gemma 4 commits, and its
+// ResourceFetcherAdapter has no fetch() on the fetcher class. fetcher 0.9.0 extends
+// BaseResourceFetcherClass, which the fork does not export (it arrived upstream in the
+// rne-rewrite line, 1dcc58bfb9). No published executorch matches both the fork's Gemma 4
+// constants and that class, so the cast stays until one side changes. Not published.
 initExecutorch({ resourceFetcher: ExpoResourceFetcher as unknown as Parameters<typeof initExecutorch>[0]['resourceFetcher'] });
